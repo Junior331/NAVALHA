@@ -260,3 +260,52 @@ export async function situacaoDoAgendamento(
     ? { tipo: 'reserva', reservadoAte: reserva.expira_em.toISOString() }
     : { tipo: 'expirado' }
 }
+
+export interface BarbeariaNaBusca {
+  slug: string
+  nome: string
+  bairro: string | null
+  cidade: string | null
+  logoUrl: string | null
+  nota: number | null
+  avaliacoes: number
+  aceitaAgendamentos: boolean
+}
+
+/** Busca do app (Cliente 04): só quem escolheu aparecer nas buscas (Admin 09). */
+export async function buscarBarbearias(ctx: Contexto, termo: string): Promise<BarbeariaNaBusca[]> {
+  const filtro = `%${termo.trim()}%`
+  const linhas = await ctx.sql<
+    {
+      slug: string
+      nome: string
+      bairro: string | null
+      cidade: string | null
+      logo_url: string | null
+      nota: string | null
+      avaliacoes: number
+      aceita: boolean
+    }[]
+  >`
+    select b.slug, b.nome, b.bairro, b.cidade, b.logo_url,
+      round(avg(a.nota), 1)::text as nota, count(a.id)::int as avaliacoes,
+      (b.aceitar_agendamentos_online and b.recebimentos_ativos_em is not null) as aceita
+    from public.barbearias b
+    left join public.avaliacoes a on a.barbearia_id = b.id
+    where b.aparecer_nas_buscas
+      and (b.nome ilike ${filtro} or coalesce(b.bairro, '') ilike ${filtro}
+        or coalesce(b.cidade, '') ilike ${filtro})
+    group by b.id
+    order by aceita desc, count(a.id) desc, b.nome
+    limit 30`
+  return linhas.map((l) => ({
+    slug: l.slug,
+    nome: l.nome,
+    bairro: l.bairro,
+    cidade: l.cidade,
+    logoUrl: l.logo_url,
+    nota: l.nota === null ? null : Number(l.nota),
+    avaliacoes: l.avaliacoes,
+    aceitaAgendamentos: l.aceita,
+  }))
+}

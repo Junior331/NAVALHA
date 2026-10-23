@@ -388,12 +388,14 @@ describe('cadastros', () => {
     const slug = `ze-${randomUUID().slice(0, 8)}`
 
     const r = await cadastrarBarbearia(ctx, comoUsuario(dono.usuarioId), {
-      nome: 'Barbearia do Zé',
+      nome: `Cadastro ${slug}`,
       slug,
       nomeDoDono: 'Zé Barbosa',
       plano: 'basic',
       ciclo: 'mensal',
     })
+    // Fora da busca do app: o banco local é o mesmo da demonstração.
+    await sql`update public.barbearias set aparecer_nas_buscas = false where id = ${r.barbeariaId}`
 
     const [assinatura] = await sql<{ status: string; trial_ate: Date }[]>`
       select status, trial_ate from public.assinaturas where barbearia_id = ${r.barbeariaId}`

@@ -82,3 +82,5 @@ export {
   type PaginaDaBarbearia,
   type SituacaoDoAgendamento,
 } from './casos/vitrine'
+export { avaliarAtendimento } from './casos/avaliacao'
+export { buscarBarbearias, type BarbeariaNaBusca } from './casos/vitrine'

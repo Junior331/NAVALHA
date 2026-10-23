@@ -53,6 +53,8 @@ export async function criarBarbearia(
     toleranciaMin?: number
     fidelidade?: { cortes: number; servicoGratisId?: string }
     recebimentosAtivos?: boolean
+    /** As barbearias de teste ficam fora da busca do app, para não poluir o banco local. */
+    nasBuscas?: boolean
   } = {},
 ): Promise<BarbeariaDeTeste> {
   const sufixo = randomUUID().slice(0, 8)
@@ -64,8 +66,10 @@ export async function criarBarbearia(
 
   await sql`insert into auth.users (id, email) values (${donoUsuarioId}, ${`dono-${sufixo}@teste.local`})`
   await sql`
-    insert into public.barbearias (id, nome, slug, recebimentos_ativos_em, aceitar_agendamentos_online)
-    values (${barbeariaId}, ${`Barbearia ${sufixo}`}, ${`teste-${sufixo}`}, ${ativos ? new Date() : null}, ${ativos})
+    insert into public.barbearias (id, nome, slug, recebimentos_ativos_em, aceitar_agendamentos_online,
+      aparecer_nas_buscas)
+    values (${barbeariaId}, ${`Barbearia ${sufixo}`}, ${`teste-${sufixo}`}, ${ativos ? new Date() : null}, ${ativos},
+      ${opcoes.nasBuscas ?? false})
   `
   const plano = opcoes.plano ?? 'free'
   await sql`

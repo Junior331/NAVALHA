@@ -1,0 +1,48 @@
+# Roadmap 7a: cartão a mais de 72h do fim do prazo grátis fica Reservado, sem cobrança.
+appId: app.navalha
+---
+- launchApp:
+    clearState: true
+- tapOn: 'E-mail'
+- inputText: 'lucas@exemplo.com'
+- tapOn: 'Senha'
+- inputText: 'navalha123'
+- tapOn: 'Entrar'
+- tapOn: 'Agendar um horário'
+- tapOn:
+    text: 'Barbearia do Zé.*'
+- tapOn:
+    text: 'Corte masculino.*'
+- tapOn:
+    text: 'Agendar horário.*'
+- tapOn: 'Ver horários'
+- scrollUntilVisible:
+    element:
+      text: 'seg.*'
+    direction: RIGHT
+- tapOn:
+    text: '.*seg.*'
+    index: 1
+- tapOn:
+    text: '\d{2}:\d{2}'
+    index: 0
+- tapOn: 'Continuar'
+- tapOn:
+    text: 'Cartão de crédito.*'
+- tapOn: 'Número do cartão'
+- inputText: '4111111111111111'
+- tapOn: 'Nome impresso no cartão'
+- inputText: 'LUCAS ANDRADE'
+- tapOn: 'Validade (MM/AA)'
+- inputText: '12/30'
+- tapOn: 'CVV'
+- inputText: '123'
+- tapOn: 'CPF do titular'
+- inputText: '24971563792'
+- tapOn: 'CEP do titular'
+- inputText: '05413000'
+- tapOn: 'Número do endereço'
+- inputText: '120'
+- tapOn: 'Reservar com cartão'
+- assertVisible: 'Reservado'
+- assertVisible: 'Nada foi cobrado ainda.*'

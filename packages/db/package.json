@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./tipos": "./src/database.types.ts"
   },
   "scripts": {
     "gen:types": "supabase gen types typescript --local --schema public > src/database.types.ts",

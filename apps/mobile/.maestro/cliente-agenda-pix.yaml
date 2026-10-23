@@ -1,0 +1,29 @@
+# Roadmap 7a: agendar com Pix até Confirmado. Precisa do app em build de desenvolvimento
+# (appId app.navalha), da API local com PAGAMENTOS=fake e de EXPO_PUBLIC_SIMULAR_PIX=1.
+appId: app.navalha
+---
+- launchApp:
+    clearState: true
+- tapOn: 'E-mail'
+- inputText: 'lucas@exemplo.com'
+- tapOn: 'Senha'
+- inputText: 'navalha123'
+- tapOn: 'Entrar'
+- assertVisible: 'Próximo horário'
+- tapOn: 'Agendar um horário'
+- tapOn:
+    text: 'Barbearia do Zé.*'
+- tapOn:
+    text: 'Corte masculino.*'
+- tapOn:
+    text: 'Agendar horário.*'
+- tapOn: 'Ver horários'
+- tapOn:
+    text: '\d{2}:\d{2}'
+    index: 0
+- tapOn: 'Continuar'
+- tapOn:
+    text: 'Pagar .* com Pix'
+- assertVisible: 'Pague com Pix para confirmar'
+- tapOn: 'Simular pagamento do Pix (teste)'
+- assertVisible: 'Confirmado'

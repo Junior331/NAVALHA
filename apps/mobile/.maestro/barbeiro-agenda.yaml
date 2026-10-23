@@ -1,0 +1,17 @@
+# Roadmap 7f: o barbeiro vê "Meus ganhos" (sem carteira nem saque) e a agenda.
+appId: app.navalha
+---
+- launchApp:
+    clearState: true
+- tapOn: 'E-mail'
+- inputText: 'rafael@barbeariadoze.com'
+- tapOn: 'Senha'
+- inputText: 'navalha123'
+- tapOn: 'Entrar'
+- assertVisible: 'Meus ganhos'
+- assertNotVisible: 'Sacar'
+- tapOn: 'Agenda'
+- tapOn: 'Concluídos'
+- assertVisible: 'Concluído'
+- tapOn: 'Horários'
+- assertVisible: 'Meus horários'

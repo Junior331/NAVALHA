@@ -1,0 +1,10 @@
+# Barbeiro 01–03: o link do convite abre o app. Troque TOKEN por um convite gerado no painel.
+appId: app.navalha
+env:
+  TOKEN: troque-pelo-token-do-convite
+---
+- launchApp:
+    clearState: true
+- openLink: navalha://convite/${TOKEN}
+- assertVisible: 'Você foi convidado.*'
+- assertVisible: 'Criar meu acesso'
