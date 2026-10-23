@@ -31,6 +31,7 @@ export type EventoInterno =
     }
   | { name: 'pagamento/regularizado'; data: { agendamentoId: string } }
   | { name: 'reserva/criada'; data: { reservaId: string; expiraEm: string } }
+  | { name: 'pagamento/webhook-recebido'; data: { eventoId: string } }
 
 export interface Resultado<T extends string> {
   resultado: T

@@ -1,6 +1,7 @@
 // Erro de regra de negócio, com o status HTTP que a API devolve e uma mensagem para o usuário.
 
 export type CodigoErro =
+  | 'nao_autenticado'
   | 'nao_encontrado'
   | 'sem_permissao'
   | 'estado_invalido'
@@ -10,6 +11,7 @@ export type CodigoErro =
   | 'recebimentos_inativos'
 
 const STATUS: Record<CodigoErro, number> = {
+  nao_autenticado: 401,
   nao_encontrado: 404,
   sem_permissao: 403,
   estado_invalido: 409,

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { aplicarCupom, validarCupom, type Cupom, type MotivoCupomInvalido } from './cupom'
+import {
+  aplicarCupom,
+  precoDoServico,
+  validarCupom,
+  type Cupom,
+  type MotivoCupomInvalido,
+} from './cupom'
 
 // regras-de-negocio §Outras regras: cupom criado por cada barbearia e válido só nela; o desconto
 // sai do valor da barbearia. Backlog Admin 07: campo "Dias válidos" aplicado pelo sistema.
@@ -87,5 +93,21 @@ describe('aplicarCupom', () => {
       desconto: { tipo: 'fixo', valor: 1000 },
     }
     expect(aplicarCupom(itens, todos).valorPago).toBe(9000)
+  })
+})
+
+describe('precoDoServico', () => {
+  it('sem desconto, é o preço de tabela', () => {
+    expect(precoDoServico(5500, null)).toBe(5500)
+  })
+
+  it('desconto percentual arredonda o desconto para baixo (Admin 05: R$ 70 com −15%)', () => {
+    expect(precoDoServico(7000, { tipo: 'percentual', pct: 15 })).toBe(5950)
+    expect(precoDoServico(999, { tipo: 'percentual', pct: 15 })).toBe(850)
+  })
+
+  it('desconto fixo nunca deixa o preço negativo (Admin 05: R$ 95 com −R$ 10)', () => {
+    expect(precoDoServico(9500, { tipo: 'fixo', valor: 1000 })).toBe(8500)
+    expect(precoDoServico(500, { tipo: 'fixo', valor: 1000 })).toBe(0)
   })
 })

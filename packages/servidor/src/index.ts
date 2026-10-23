@@ -23,3 +23,38 @@ export {
 } from './servicos/pix'
 export { enviarLembrete, marcarNoShowSeVencido } from './servicos/rotina'
 export { processarWebhookDePagamento, registrarWebhook } from './servicos/webhook'
+export { CanalEmailResend, CanalPushExpo } from './canais'
+export { chaveDaSubcontaNoVault, montarContexto, type Ambiente } from './configuracao'
+export {
+  clienteDoUsuario,
+  exigirDono,
+  exigirMembro,
+  papelNaBarbearia,
+  type Papel,
+  type Usuario,
+} from './casos/acesso'
+export {
+  calcularPreco,
+  criarAgendamento,
+  simularPreco,
+  type EntradaAgendamento,
+  type SaidaAgendamento,
+} from './casos/agendar'
+export {
+  cancelarAgendamento,
+  concluirAtendimento,
+  iniciarAtendimento,
+  marcarNoShow,
+  previaDoCancelamento,
+  type PreviaCancelamento,
+} from './casos/atendimento'
+export {
+  aceitarConvite,
+  cadastrarBarbearia,
+  cadastrarCliente,
+  consultarConvite,
+  criarConvite,
+  registrarDispositivo,
+  type DadosBarbearia,
+} from './casos/cadastro'
+export { consultarDisponibilidade, type Disponibilidade } from './casos/disponibilidade'

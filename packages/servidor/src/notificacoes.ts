@@ -1,7 +1,7 @@
 import type { Sql } from '@navalha/db'
 
 // Notificações: cada aviso vira uma linha em notificacoes (aparece no app, Cliente 19) e segue
-// pelos canais configurados (push e e-mail no MVP; WhatsApp depois, atrás da mesma interface).
+// pelos canais configurados, em ordem (push e, se não entregar, e-mail; WhatsApp depois).
 
 export interface Aviso {
   usuarioId: string
@@ -17,7 +17,8 @@ export interface Notificador {
 
 export interface Canal {
   nome: string
-  enviar(aviso: Aviso): Promise<void>
+  /** true quando entregou; false passa para o próximo canal (fallback). */
+  enviar(aviso: Aviso): Promise<boolean>
 }
 
 export class NotificadorPadrao implements Notificador {
@@ -31,8 +32,12 @@ export class NotificadorPadrao implements Notificador {
       insert into public.notificacoes (usuario_id, titulo, corpo, tipo, dados)
       values (${aviso.usuarioId}, ${aviso.titulo}, ${aviso.corpo}, ${aviso.tipo}, ${this.sql.json(aviso.dados ?? {})})
     `
-    // Um canal fora do ar não pode derrubar o fluxo de dinheiro: o aviso já está no app.
-    await Promise.allSettled(this.canais.map((canal) => canal.enviar(aviso)))
+    // Entrega pelo primeiro canal que funcionar (push; e-mail como fallback). Um canal fora do ar
+    // não pode derrubar o fluxo de dinheiro: o aviso já está no app.
+    for (const canal of this.canais) {
+      const entregue = await canal.enviar(aviso).catch(() => false)
+      if (entregue) return
+    }
   }
 }
 

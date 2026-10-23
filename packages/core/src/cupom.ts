@@ -86,3 +86,10 @@ function abrange(cupom: Cupom, servicoId: string): boolean {
 function invalido(motivo: MotivoCupomInvalido): ResultadoCupom {
   return { ok: false, motivo }
 }
+
+/** Preço do serviço com o desconto cadastrado no próprio serviço (Admin 05 e 05c). */
+export function precoDoServico(preco: Centavos, desconto: Desconto | null): Centavos {
+  if (!desconto) return preco
+  if (desconto.tipo === 'percentual') return preco - percentualPraBaixo(preco, desconto.pct * 100)
+  return Math.max(0, preco - desconto.valor)
+}

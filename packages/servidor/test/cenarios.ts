@@ -280,3 +280,24 @@ export async function criarReservaPix(
   `
   return { reservaId, cobrancaId: pix.cobrancaId }
 }
+
+/** Barbearia aberta todo dia 08–21; barbeiro seg–sáb 09–19 com intervalo 12–13; serviço de 60 min. */
+export async function criarBarbeariaPronta(
+  sql: Sql,
+  pagamentos: FakePaymentProvider,
+  opcoes: Parameters<typeof criarBarbearia>[2] = {},
+): Promise<BarbeariaDeTeste & { servicoId: string }> {
+  const b = await criarBarbearia(sql, pagamentos, opcoes)
+  for (const dia of [0, 1, 2, 3, 4, 5, 6]) {
+    await sql`
+      insert into public.horarios_barbearia (barbearia_id, dia_semana, abre, fecha)
+      values (${b.barbeariaId}, ${dia}, '08:00', '21:00')`
+  }
+  for (const dia of [1, 2, 3, 4, 5, 6]) {
+    await sql`
+      insert into public.horarios_atendimento (membro_id, barbearia_id, dia_semana, inicio, fim, pausa_inicio, pausa_fim)
+      values (${b.barbeiroId}, ${b.barbeariaId}, ${dia}, '09:00', '19:00', '12:00', '13:00')`
+  }
+  const servicoId = await criarServico(sql, b)
+  return { ...b, servicoId }
+}

@@ -57,6 +57,21 @@ importers:
       '@navalha/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@navalha/db':
+        specifier: workspace:^
+        version: link:../../packages/db
+      '@navalha/pagamentos':
+        specifier: workspace:^
+        version: link:../../packages/pagamentos
+      '@navalha/servidor':
+        specifier: workspace:^
+        version: link:../../packages/servidor
+      inngest:
+        specifier: ^4.25.0
+        version: 4.25.0(@opentelemetry/core@3.0.0(@opentelemetry/api@1.10.0))(next@16.4.2(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(typescript@5.9.3)(zod@4.6.7)
+      jose:
+        specifier: ^6.2.13
+        version: 6.2.13
       next:
         specifier: 16.4.2
         version: 16.4.2(@babel/core@7.29.7)(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -66,6 +81,9 @@ importers:
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ^22

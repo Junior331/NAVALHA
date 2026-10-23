@@ -40,6 +40,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: supabase db start
       - run: supabase test db
-      - run: pnpm --filter @navalha/servidor test:integracao
+      - run: pnpm --filter @navalha/servidor --filter @navalha/web test:integracao
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres

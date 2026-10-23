@@ -28,6 +28,9 @@ interface Subconta {
 export class FakePaymentProvider implements PaymentProvider {
   static readonly CARTAO_RECUSADO = '4000000000000002'
 
+  /** autoRegistrarSubcontas: no ambiente local, aceita as subcontas do seed sem cadastro prévio. */
+  constructor(private readonly opcoes: { autoRegistrarSubcontas?: boolean } = {}) {}
+
   private sequencia = 0
   // Prefixo por instância: ids não colidem quando vários fakes gravam no mesmo banco.
   private readonly instancia = Math.random().toString(36).slice(2, 8)
@@ -259,6 +262,7 @@ export class FakePaymentProvider implements PaymentProvider {
   }
 
   private subconta(subcontaId: string): Subconta {
+    if (this.opcoes.autoRegistrarSubcontas) this.registrarSubconta(subcontaId)
     const subconta = this.subcontas.get(subcontaId)
     if (!subconta) {
       throw new ErroPagamento('subconta_inexistente', `Subconta ${subcontaId} não existe`)

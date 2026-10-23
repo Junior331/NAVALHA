@@ -8,6 +8,7 @@ export type Tabela<T extends keyof Public['Tables']> = Public['Tables'][T]['Row'
 export type Enum<T extends keyof Public['Enums']> = Public['Enums'][T]
 
 export type Sql = postgres.Sql<{ bigint: number }>
+export type Transacao = postgres.TransactionSql<{ bigint: number }>
 
 // Centavos cabem com folga em Number.MAX_SAFE_INTEGER; passou disso, é erro de dado.
 const int8ComoNumber = {
