@@ -1,0 +1,103 @@
+.pagina {
+  min-height: 100vh;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  display: grid;
+  gap: 32px;
+  align-content: start;
+}
+
+.topo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.etapas {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--texto-suave);
+}
+
+.etapas li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.etapas li span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--borda-forte);
+  font-size: 12px;
+}
+
+.etapas li[aria-current='step'] {
+  color: var(--texto);
+  font-weight: 600;
+}
+
+.etapas li[aria-current='step'] span {
+  background: var(--primario);
+  color: var(--primario-texto);
+  border-color: var(--primario);
+}
+
+.feita span {
+  background: var(--sucesso-suave);
+  color: var(--sucesso);
+  border-color: transparent !important;
+}
+
+.conteudo {
+  display: grid;
+  gap: 16px;
+}
+
+.conteudo h1 {
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.subtitulo {
+  color: var(--texto-suave);
+}
+
+.formulario {
+  display: grid;
+  gap: 14px;
+}
+
+.acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dias {
+  display: grid;
+  gap: 4px;
+}
+
+.dia {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--borda);
+}
+
+.dia:last-child {
+  border-bottom: 0;
+}
