@@ -1,3 +1,3 @@
-import { VERSAO_CORE } from '@navalha/core'
+import { CEM_POR_CENTO } from '@navalha/core'
 
-export const versaoCore = (): string => VERSAO_CORE
+export const cemPorCento = (): number => CEM_POR_CENTO

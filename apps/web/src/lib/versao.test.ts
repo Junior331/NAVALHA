@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { versaoCore } from './versao'
+import { cemPorCento } from './versao'
 
 describe('web', () => {
   it('importa o @navalha/core', () => {
-    expect(versaoCore()).toBe('0.0.0')
+    expect(cemPorCento()).toBe(10000)
   })
 })
