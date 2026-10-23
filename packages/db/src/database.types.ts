@@ -181,6 +181,32 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"clientes_gateway": {
+                  Row: {
+                    "barbearia_id": string,"cliente_id": string,"criado_em": string,"gateway_cliente_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "barbearia_id": string,"cliente_id": string,"criado_em"?: string,"gateway_cliente_id": string
+                  }
+                  Update: {
+                    "barbearia_id"?: string,"cliente_id"?: string,"criado_em"?: string,"gateway_cliente_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "clientes_gateway_barbearia_id_fkey"
+      columns: ["barbearia_id"]
+isOneToOne: false
+      referencedRelation: "barbearias"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "clientes_gateway_cliente_id_fkey"
+      columns: ["cliente_id"]
+isOneToOne: false
+      referencedRelation: "clientes"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"convites": {
                   Row: {
                     "barbearia_id": string,"contato": string | null,"criado_em": string,"criado_por": string | null,"expira_em": string,"id": string,"nome": string,"papel": Database["public"]['Enums']["papel_membro"],"servico_ids": (string)[],"token_hash": string,"usado_em": string | null,"usado_por": string | null
@@ -485,14 +511,14 @@ isOneToOne: false
                   ]
                 },"pagamentos": {
                   Row: {
-                    "agendamento_id": string,"asaas_cobranca_id": string | null,"atualizado_em": string,"barbearia_id": string,"capturar_em": string | null,"cartao_final": string | null,"cartao_token": string | null,"criado_em": string,"falhou_em": string | null,"id": string,"meio": Database["public"]['Enums']["meio_pagamento"],"pre_autorizar_em": string | null,"regularizar_ate": string | null,"status": Database["public"]['Enums']["status_pagamento"],"taxa_gateway_centavos": number,"valor_centavos": number,"valor_estornado_centavos": number
+                    "agendamento_id": string,"asaas_cobranca_id": string | null,"atualizado_em": string,"barbearia_id": string,"capturar_em": string | null,"cartao_final": string | null,"cartao_token": string | null,"criado_em": string,"falhou_em": string | null,"id": string,"ip_remoto": unknown,"meio": Database["public"]['Enums']["meio_pagamento"],"motivo_recusa": string | null,"pre_autorizar_em": string | null,"regularizar_ate": string | null,"status": Database["public"]['Enums']["status_pagamento"],"taxa_gateway_centavos": number,"valor_centavos": number,"valor_estornado_centavos": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "agendamento_id": string,"asaas_cobranca_id"?: string | null,"atualizado_em"?: string,"barbearia_id": string,"capturar_em"?: string | null,"cartao_final"?: string | null,"cartao_token"?: string | null,"criado_em"?: string,"falhou_em"?: string | null,"id"?: string,"meio": Database["public"]['Enums']["meio_pagamento"],"pre_autorizar_em"?: string | null,"regularizar_ate"?: string | null,"status": Database["public"]['Enums']["status_pagamento"],"taxa_gateway_centavos"?: number,"valor_centavos": number,"valor_estornado_centavos"?: number
+                    "agendamento_id": string,"asaas_cobranca_id"?: string | null,"atualizado_em"?: string,"barbearia_id": string,"capturar_em"?: string | null,"cartao_final"?: string | null,"cartao_token"?: string | null,"criado_em"?: string,"falhou_em"?: string | null,"id"?: string,"ip_remoto"?: unknown,"meio": Database["public"]['Enums']["meio_pagamento"],"motivo_recusa"?: string | null,"pre_autorizar_em"?: string | null,"regularizar_ate"?: string | null,"status": Database["public"]['Enums']["status_pagamento"],"taxa_gateway_centavos"?: number,"valor_centavos": number,"valor_estornado_centavos"?: number
                   }
                   Update: {
-                    "agendamento_id"?: string,"asaas_cobranca_id"?: string | null,"atualizado_em"?: string,"barbearia_id"?: string,"capturar_em"?: string | null,"cartao_final"?: string | null,"cartao_token"?: string | null,"criado_em"?: string,"falhou_em"?: string | null,"id"?: string,"meio"?: Database["public"]['Enums']["meio_pagamento"],"pre_autorizar_em"?: string | null,"regularizar_ate"?: string | null,"status"?: Database["public"]['Enums']["status_pagamento"],"taxa_gateway_centavos"?: number,"valor_centavos"?: number,"valor_estornado_centavos"?: number
+                    "agendamento_id"?: string,"asaas_cobranca_id"?: string | null,"atualizado_em"?: string,"barbearia_id"?: string,"capturar_em"?: string | null,"cartao_final"?: string | null,"cartao_token"?: string | null,"criado_em"?: string,"falhou_em"?: string | null,"id"?: string,"ip_remoto"?: unknown,"meio"?: Database["public"]['Enums']["meio_pagamento"],"motivo_recusa"?: string | null,"pre_autorizar_em"?: string | null,"regularizar_ate"?: string | null,"status"?: Database["public"]['Enums']["status_pagamento"],"taxa_gateway_centavos"?: number,"valor_centavos"?: number,"valor_estornado_centavos"?: number
                   }
                   Relationships: [
                     {

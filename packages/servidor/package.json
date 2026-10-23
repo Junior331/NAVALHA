@@ -1,0 +1,29 @@
+{
+  "name": "@navalha/servidor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./inngest": "./src/inngest/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integracao": "vitest run --config vitest.integracao.config.ts"
+  },
+  "dependencies": {
+    "@navalha/core": "workspace:*",
+    "@navalha/db": "workspace:*",
+    "@navalha/pagamentos": "workspace:*",
+    "inngest": "^4.25.0"
+  },
+  "devDependencies": {
+    "@navalha/config": "workspace:*",
+    "@types/node": "^22",
+    "eslint": "^9.39.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.0"
+  }
+}

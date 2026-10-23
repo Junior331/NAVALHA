@@ -32,5 +32,14 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.121.0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: supabase db start
       - run: supabase test db
+      - run: pnpm --filter @navalha/servidor test:integracao
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres

@@ -29,15 +29,24 @@ export class FakePaymentProvider implements PaymentProvider {
   static readonly CARTAO_RECUSADO = '4000000000000002'
 
   private sequencia = 0
+  // Prefixo por instância: ids não colidem quando vários fakes gravam no mesmo banco.
+  private readonly instancia = Math.random().toString(36).slice(2, 8)
   private readonly subcontas = new Map<string, Subconta>()
   private readonly cobrancas = new Map<string, Cobranca | CobrancaPix>()
   private readonly donoDaCobranca = new Map<string, string>()
   private readonly porReferencia = new Map<string, string>()
   private readonly tokens = new Map<string, DadosCartao>()
+  /** Transferências feitas, para os testes conferirem o lote semanal. */
+  readonly transferencias: {
+    subcontaId: string
+    chavePix: string
+    valor: Centavos
+    referencia: string
+  }[] = []
 
   private novoId(prefixo: string): string {
     this.sequencia += 1
-    return `${prefixo}_${this.sequencia}`
+    return `${prefixo}_${this.instancia}${this.sequencia}`
   }
 
   /** Cria uma subconta com id conhecido (útil no seed e nos testes de integração). */
@@ -218,6 +227,7 @@ export class FakePaymentProvider implements PaymentProvider {
   }): Promise<{ transferenciaId: string }> {
     this.subconta(params.subcontaId)
     this.valorPositivo(params.valor)
+    this.transferencias.push({ ...params })
     return { transferenciaId: this.novoId('tra') }
   }
 
