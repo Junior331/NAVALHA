@@ -50,13 +50,16 @@ select is((select count(*) from public.agendamentos)::int, 1, 'dono A vê só o 
 select is((select count(*) from public.agendamentos where barbearia_id <> 'aaaaaaaa-0000-0000-0000-000000000000')::int, 0, 'dono A não vê agendamento de B');
 select is((select count(*) from public.membros)::int, 2, 'dono A vê só a equipe de A');
 select is((select count(*) from public.clientes)::int, 1, 'dono A vê só clientes que agendaram em A');
+-- RLS não dá erro no UPDATE: só filtra as linhas. Por isso confere o preço depois.
+update public.servicos set preco_centavos = 1 where barbearia_id = 'bbbbbbbb-0000-0000-0000-000000000000';
 select is(
-  (with u as (update public.servicos set preco_centavos = 1 where barbearia_id = 'bbbbbbbb-0000-0000-0000-000000000000' returning 1) select count(*) from u)::int,
-  0, 'dono A não altera serviço de B'
+  (select preco_centavos from public.servicos where id = '33333333-0000-0000-0000-00000000000b')::int,
+  4500, 'dono A não altera serviço de B'
 );
+update public.servicos set preco_centavos = 4200 where barbearia_id = 'aaaaaaaa-0000-0000-0000-000000000000';
 select is(
-  (with u as (update public.servicos set preco_centavos = 4200 where barbearia_id = 'aaaaaaaa-0000-0000-0000-000000000000' returning 1) select count(*) from u)::int,
-  1, 'dono A altera serviço de A'
+  (select preco_centavos from public.servicos where id = '33333333-0000-0000-0000-00000000000a')::int,
+  4200, 'dono A altera serviço de A'
 );
 select throws_ok(
   $$ insert into public.agendamentos (barbearia_id, cliente_id, barbeiro_id, inicio, fim, status, valor_pago_centavos)
@@ -68,9 +71,10 @@ select throws_ok(
 -- Barbeiro da barbearia A
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000a002","role":"authenticated"}', true);
 select is((select count(*) from public.agendamentos)::int, 1, 'barbeiro A vê a agenda de A');
+update public.servicos set preco_centavos = 1 where barbearia_id = 'aaaaaaaa-0000-0000-0000-000000000000';
 select is(
-  (with u as (update public.servicos set preco_centavos = 1 where barbearia_id = 'aaaaaaaa-0000-0000-0000-000000000000' returning 1) select count(*) from u)::int,
-  0, 'barbeiro não altera preço de serviço (só o dono)'
+  (select preco_centavos from public.servicos where id = '33333333-0000-0000-0000-00000000000a')::int,
+  4200, 'barbeiro não altera preço de serviço (só o dono)'
 );
 
 -- Cliente Y (agendou na B)
@@ -83,7 +87,10 @@ select is((select count(*) from public.clientes)::int, 1, 'cliente vê só o pr�
 reset role;
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
-select is((select count(*) from public.agendamentos)::int, 0, 'visitante não vê agendamentos');
+select throws_ok(
+  'select count(*) from public.agendamentos', '42501', null,
+  'visitante não tem acesso à tabela de agendamentos'
+);
 select is((select count(*) from public.barbearias)::int, 2, 'visitante vê as barbearias (página pública)');
 select is((select count(*) from public.servicos)::int, 2, 'visitante vê os serviços ativos');
 
