@@ -2,26 +2,36 @@ import { centavos, percentualPraBaixo, type Centavos } from '@navalha/core'
 import {
   ErroPagamento,
   type CartaoTokenizado,
+  type ClienteDoGateway,
   type Cobranca,
   type CobrancaPix,
   type DadosCartao,
+  type DadosSubconta,
   type PaymentProvider,
+  type TitularCartao,
 } from './provider'
 
-// Gateway em memória para testes. Cartão usa a tarifa cheia do Asaas
-// (2,99% + R$ 0,49, ajustes-taxas §G com preço cheio); Pix recebido sem tarifa até o
-// suporte confirmar (ajustes-taxas §Perguntas).
+// Gateway em memória para testes e para o ambiente local. Cartão usa a tarifa cheia do Asaas
+// (2,99% + R$ 0,49, ajustes-taxas §G com preço cheio); Pix recebido sem tarifa até o suporte
+// confirmar (ajustes-taxas §Perguntas).
 const TARIFA_CARTAO_PB = 299
 const TARIFA_CARTAO_FIXA: Centavos = 49
 
-const ESTORNAVEIS = new Set(['paga', 'capturada', 'estornada_parcialmente'])
+const ESTORNAVEIS = new Set<Cobranca['status']>(['paga', 'capturada', 'estornada_parcialmente'])
+const LIBERAVEIS = new Set<Cobranca['status']>(['paga', 'capturada', 'estornada_parcialmente'])
+
+interface Subconta {
+  escrow: boolean
+  clientes: Map<string, string>
+}
 
 export class FakePaymentProvider implements PaymentProvider {
   static readonly CARTAO_RECUSADO = '4000000000000002'
 
   private sequencia = 0
-  private readonly subcontas = new Set<string>()
+  private readonly subcontas = new Map<string, Subconta>()
   private readonly cobrancas = new Map<string, Cobranca | CobrancaPix>()
+  private readonly donoDaCobranca = new Map<string, string>()
   private readonly porReferencia = new Map<string, string>()
   private readonly tokens = new Map<string, DadosCartao>()
 
@@ -30,31 +40,63 @@ export class FakePaymentProvider implements PaymentProvider {
     return `${prefixo}_${this.sequencia}`
   }
 
-  async criarSubconta(): Promise<{ subcontaId: string }> {
-    const subcontaId = this.novoId('sub')
-    this.subcontas.add(subcontaId)
-    return { subcontaId }
+  /** Cria uma subconta com id conhecido (útil no seed e nos testes de integração). */
+  registrarSubconta(subcontaId: string): void {
+    if (!this.subcontas.has(subcontaId)) {
+      this.subcontas.set(subcontaId, { escrow: true, clientes: new Map() })
+    }
+  }
+
+  async criarSubconta(
+    dados: DadosSubconta,
+  ): Promise<{ subcontaId: string; walletId: string; chaveApi: string }> {
+    if (!dados.cpfCnpj || !dados.email) {
+      throw new ErroPagamento('dados_invalidos', 'CPF/CNPJ e e-mail são obrigatórios')
+    }
+    const subcontaId = this.novoId('acc')
+    this.subcontas.set(subcontaId, { escrow: false, clientes: new Map() })
+    return { subcontaId, walletId: this.novoId('wal'), chaveApi: this.novoId('chave') }
+  }
+
+  async habilitarEscrow(params: { subcontaId: string }): Promise<void> {
+    this.subconta(params.subcontaId).escrow = true
+  }
+
+  async garantirCliente(params: {
+    subcontaId: string
+    cliente: ClienteDoGateway
+  }): Promise<{ clienteId: string }> {
+    const { clientes } = this.subconta(params.subcontaId)
+    const existente = clientes.get(params.cliente.referencia)
+    if (existente) return { clienteId: existente }
+    const clienteId = this.novoId('cus')
+    clientes.set(params.cliente.referencia, clienteId)
+    return { clienteId }
   }
 
   async criarCobrancaPix(params: {
     subcontaId: string
+    clienteId: string
     valor: Centavos
     expiraEm: Date
     referencia: string
   }): Promise<CobrancaPix> {
-    this.exigirSubconta(params.subcontaId)
+    this.subconta(params.subcontaId)
     const existente = this.porReferencia.get(`${params.subcontaId}:${params.referencia}`)
-    if (existente) return this.buscar(existente) as CobrancaPix
+    if (existente) return { ...(this.buscar(existente) as CobrancaPix) }
 
     const cobranca: CobrancaPix = {
-      cobrancaId: this.novoId('pix'),
+      cobrancaId: this.novoId('pay'),
       referencia: params.referencia,
       meio: 'pix',
       valor: this.valorPositivo(params.valor),
       status: 'aguardando_pagamento',
       valorEstornado: 0,
       taxaGateway: 0,
-      copiaECola: `00020126580014br.gov.bcb.pix0136${params.referencia}`,
+      retencaoLiberada: false,
+      copiaECola: `00020126580014br.gov.bcb.pix0136${params.referencia}5204000053039865802BR`,
+      qrCodeBase64:
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
       expiraEm: params.expiraEm,
     }
     this.guardar(params.subcontaId, cobranca)
@@ -67,37 +109,55 @@ export class FakePaymentProvider implements PaymentProvider {
     cobranca.status = 'paga'
   }
 
+  async cancelarCobranca(params: { subcontaId: string; cobrancaId: string }): Promise<Cobranca> {
+    const cobranca = this.buscarNaSubconta(params)
+    this.exigirStatus(cobranca, ['aguardando_pagamento'])
+    cobranca.status = 'cancelada'
+    return { ...cobranca }
+  }
+
   async tokenizarCartao(params: {
     subcontaId: string
+    clienteId: string
     cartao: DadosCartao
+    titular: TitularCartao
+    ipRemoto: string
   }): Promise<CartaoTokenizado> {
-    this.exigirSubconta(params.subcontaId)
+    this.subconta(params.subcontaId)
+    if (!params.titular.cpfCnpj || !params.titular.cep) {
+      throw new ErroPagamento('dados_invalidos', 'CPF e CEP do titular são obrigatórios')
+    }
     const token = this.novoId('tok')
     this.tokens.set(token, params.cartao)
-    return { token, final: params.cartao.numero.slice(-4) }
+    return { token, final: params.cartao.numero.slice(-4), bandeira: 'VISA' }
   }
 
   async preAutorizar(params: {
     subcontaId: string
+    clienteId: string
     token: string
     valor: Centavos
     referencia: string
+    ipRemoto: string
   }): Promise<Cobranca> {
-    this.exigirSubconta(params.subcontaId)
+    this.subconta(params.subcontaId)
     const existente = this.porReferencia.get(`${params.subcontaId}:${params.referencia}`)
     if (existente) return { ...this.buscar(existente) }
 
     const cartao = this.tokens.get(params.token)
     if (!cartao) throw new ErroPagamento('estado_invalido', 'Token de cartão desconhecido')
+    const recusado = cartao.numero === FakePaymentProvider.CARTAO_RECUSADO
 
     const cobranca: Cobranca = {
-      cobrancaId: this.novoId('cc'),
+      cobrancaId: this.novoId('pay'),
       referencia: params.referencia,
       meio: 'cartao',
       valor: this.valorPositivo(params.valor),
-      status: cartao.numero === FakePaymentProvider.CARTAO_RECUSADO ? 'recusada' : 'pre_autorizada',
+      status: recusado ? 'recusada' : 'pre_autorizada',
       valorEstornado: 0,
       taxaGateway: 0,
+      retencaoLiberada: false,
+      ...(recusado ? { motivoRecusa: 'Transação não autorizada pelo emissor' } : {}),
     }
     this.guardar(params.subcontaId, cobranca)
     return { ...cobranca }
@@ -141,15 +201,24 @@ export class FakePaymentProvider implements PaymentProvider {
     return { ...cobranca }
   }
 
+  async liberarRetencao(params: { subcontaId: string; cobrancaId: string }): Promise<Cobranca> {
+    const cobranca = this.buscarNaSubconta(params)
+    if (!cobranca.retencaoLiberada && !LIBERAVEIS.has(cobranca.status)) {
+      throw new ErroPagamento('estado_invalido', `Não dá para liberar: ${cobranca.status}`)
+    }
+    cobranca.retencaoLiberada = true
+    return { ...cobranca }
+  }
+
   async transferirPix(params: {
     subcontaId: string
     chavePix: string
     valor: Centavos
     referencia: string
   }): Promise<{ transferenciaId: string }> {
-    this.exigirSubconta(params.subcontaId)
+    this.subconta(params.subcontaId)
     this.valorPositivo(params.valor)
-    return { transferenciaId: this.novoId('trf') }
+    return { transferenciaId: this.novoId('tra') }
   }
 
   async consultarCobranca(params: { subcontaId: string; cobrancaId: string }): Promise<Cobranca> {
@@ -158,30 +227,33 @@ export class FakePaymentProvider implements PaymentProvider {
 
   private guardar(subcontaId: string, cobranca: Cobranca): void {
     this.cobrancas.set(cobranca.cobrancaId, cobranca)
+    this.donoDaCobranca.set(cobranca.cobrancaId, subcontaId)
     this.porReferencia.set(`${subcontaId}:${cobranca.referencia}`, cobranca.cobrancaId)
   }
 
   private buscar(cobrancaId: string): Cobranca {
     const cobranca = this.cobrancas.get(cobrancaId)
-    if (!cobranca)
+    if (!cobranca) {
       throw new ErroPagamento('cobranca_inexistente', `Cobrança ${cobrancaId} não existe`)
+    }
     return cobranca
   }
 
   private buscarNaSubconta(params: { subcontaId: string; cobrancaId: string }): Cobranca {
-    this.exigirSubconta(params.subcontaId)
-    const id = params.cobrancaId
-    const cobranca = this.buscar(id)
-    if (this.porReferencia.get(`${params.subcontaId}:${cobranca.referencia}`) !== id) {
-      throw new ErroPagamento('cobranca_inexistente', `Cobrança ${id} não é desta subconta`)
+    this.subconta(params.subcontaId)
+    const cobranca = this.buscar(params.cobrancaId)
+    if (this.donoDaCobranca.get(params.cobrancaId) !== params.subcontaId) {
+      throw new ErroPagamento('cobranca_inexistente', 'Cobrança não é desta subconta')
     }
     return cobranca
   }
 
-  private exigirSubconta(subcontaId: string): void {
-    if (!this.subcontas.has(subcontaId)) {
+  private subconta(subcontaId: string): Subconta {
+    const subconta = this.subcontas.get(subcontaId)
+    if (!subconta) {
       throw new ErroPagamento('subconta_inexistente', `Subconta ${subcontaId} não existe`)
     }
+    return subconta
   }
 
   private exigirStatus(cobranca: Cobranca, permitidos: Cobranca['status'][]): void {
