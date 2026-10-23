@@ -20,7 +20,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="pt-BR" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      {/* Extensões do navegador mexem no body antes da hidratação. */}
+      <body suppressHydrationWarning>{children}</body>
     </html>
   )
 }

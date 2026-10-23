@@ -1,0 +1,88 @@
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.indicadorRotulo {
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.indicadorValor {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 6px 0 4px;
+}
+
+.indicadorDelta {
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.grade {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 1100px) {
+  .grade {
+    grid-template-columns: 1.6fr 1fr;
+  }
+}
+
+.cartaoTopo {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cartaoTopo h2 {
+  font-size: 16px;
+}
+
+.cartaoTopo p {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.proximos {
+  list-style: none;
+  display: grid;
+}
+
+.proximos li {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borda);
+}
+
+.proximos li > span:nth-child(2) {
+  display: grid;
+}
+
+.proximos li > span:nth-child(2) span {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  border-color: var(--marca);
+  background: var(--marca-suave);
+}
+
+.aviso span {
+  flex: 1;
+  min-width: 200px;
+  color: var(--texto-2);
+}

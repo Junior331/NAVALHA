@@ -1,0 +1,128 @@
+.figura {
+  display: grid;
+  gap: 8px;
+}
+
+.area {
+  position: relative;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.grade {
+  stroke: var(--grade);
+  stroke-width: 1;
+}
+
+.eixo {
+  fill: var(--texto-suave);
+  font-size: 11px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+.barra {
+  fill: var(--dado);
+  transition: opacity 120ms;
+}
+
+.barraAtiva {
+  opacity: 0.8;
+}
+
+.dica {
+  position: absolute;
+  top: -8px;
+  transform: translate(-50%, -100%);
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--raio-p);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  box-shadow: var(--sombra);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.dica strong {
+  font-size: 14px;
+  color: var(--texto);
+}
+
+.dica span {
+  color: var(--texto-suave);
+}
+
+.tabela summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.tabela table {
+  margin-top: 8px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabela th,
+.tabela td {
+  text-align: left;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--borda);
+  font-weight: 400;
+}
+
+.tabela td {
+  text-align: right;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+.horizontais {
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+.horizontais li {
+  display: grid;
+  grid-template-columns: minmax(96px, 160px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trilho {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--grade);
+  overflow: hidden;
+}
+
+.preenchido {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--dado);
+}
+
+.valor {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--texto-2);
+  min-width: 40px;
+  text-align: right;
+}

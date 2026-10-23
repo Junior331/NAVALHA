@@ -1,23 +1,62 @@
+/* Tokens do Navalha (Figma: superfícies claras, tinta quase-preta, laranja da marca nos destaques). */
 :root {
   --fundo: #f6f5f3;
   --superficie: #ffffff;
+  --superficie-2: #faf9f7;
   --texto: #16130f;
+  --texto-2: #4a453e;
   --texto-suave: #6b665f;
   --borda: #e6e2dc;
-  --marca: #f07a1a;
+  --borda-forte: #cfc9c0;
+  --primario: #16130f;
+  --primario-texto: #ffffff;
+  --marca: #e8711a;
   --marca-suave: #fdeedf;
-  --sucesso: #1f8a4c;
-  --perigo: #c2362b;
+  --marca-texto: #a64d0c;
+  --sucesso: #1f7a45;
+  --sucesso-suave: #e3f3e9;
+  --alerta: #8a5a00;
+  --alerta-suave: #fbf0d9;
+  --perigo: #b42318;
+  --perigo-suave: #fde8e6;
+  --info: #1d5bbf;
+  --info-suave: #e5edfb;
+  --foco: #1d5bbf;
+  --dado: #e8711a;
+  --grade: #ece8e2;
+  --raio: 12px;
+  --raio-p: 8px;
+  --sombra: 0 1px 2px rgb(22 19 15 / 6%), 0 8px 24px rgb(22 19 15 / 6%);
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --fundo: #0f0e0c;
     --superficie: #1a1815;
+    --superficie-2: #211f1b;
     --texto: #f2efe9;
+    --texto-2: #cfc9c0;
     --texto-suave: #a39d94;
     --borda: #2e2a25;
+    --borda-forte: #4a453e;
+    --primario: #f2efe9;
+    --primario-texto: #16130f;
     --marca-suave: #3a2410;
+    --marca-texto: #f3a566;
+    --sucesso: #5fc48a;
+    --sucesso-suave: #12301f;
+    --alerta: #e8b34a;
+    --alerta-suave: #33280f;
+    --perigo: #f28b82;
+    --perigo-suave: #3a1714;
+    --info: #8ab4f8;
+    --info-suave: #142640;
+    --foco: #8ab4f8;
+    --dado: #e06c1c;
+    --grade: #2a2722;
+    --sombra: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 30%);
+    color-scheme: dark;
   }
 }
 
@@ -27,10 +66,54 @@
   padding: 0;
 }
 
+html,
 body {
-  min-height: 100vh;
+  min-height: 100%;
+}
+
+body {
   color: var(--texto);
   background: var(--fundo);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+.rotulo {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.so-leitor {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

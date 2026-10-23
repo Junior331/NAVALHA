@@ -1,0 +1,60 @@
+.pagina {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 16px 80px;
+}
+
+.topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.icone {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--marca);
+  color: #16130f;
+  display: grid;
+  place-items: center;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.heroi {
+  display: grid;
+  gap: 20px;
+  padding: 72px 0;
+  max-width: 720px;
+}
+
+.heroi h1 {
+  font-size: clamp(32px, 6vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.heroi p {
+  color: var(--texto-2);
+  font-size: 18px;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

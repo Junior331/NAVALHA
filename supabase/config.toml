@@ -245,6 +245,15 @@ otp_expiry = 3600
 # sender_name = "Admin"
 
 # Uncomment to customize email template
+# Código de 6 dígitos em vez de link (Figma Mobile 08 e Senha 02).
+[auth.email.template.confirmation]
+subject = "Seu código do Navalha"
+content_path = "./supabase/templates/codigo-confirmacao.html"
+
+[auth.email.template.recovery]
+subject = "Código para redefinir sua senha"
+content_path = "./supabase/templates/codigo-recuperacao.html"
+
 # [auth.email.template.invite]
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
