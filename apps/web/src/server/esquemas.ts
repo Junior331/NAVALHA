@@ -77,3 +77,24 @@ export const esquemaDispositivo = z.object({
   expoToken: z.string().min(10).max(200),
   plataforma: z.enum(['ios', 'android']),
 })
+
+export const esquemaRemarcacao = z.object({
+  inicio: z.iso.datetime(),
+  barbeiroId: id.optional(),
+})
+
+export const esquemaBalcao = z.object({
+  barbeariaId: id,
+  cliente: z.union([
+    z.object({ id }),
+    z.object({
+      nome: z.string().trim().min(2).max(100),
+      celular: digitos(10, 11).optional(),
+      email: z.email().optional(),
+    }),
+  ]),
+  servicoIds: z.array(id).min(1).max(10),
+  barbeiroId: id,
+  inicio: z.iso.datetime(),
+  observacoes: z.string().trim().max(300).optional(),
+})

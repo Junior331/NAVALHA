@@ -1,14 +1,16 @@
 import { deveMarcarNoShow, transicionar } from '@navalha/core'
 import type { Contexto, Resultado } from '../contexto'
-import { carregarAgendamento, horaLocal } from '../repositorio'
+import { carregarAgendamento, horaLocal, versaoVencida } from '../repositorio'
 
 // Rotinas presas ao horário do agendamento: no-show ao fim da tolerância e lembrete 1h antes.
 
 export async function marcarNoShowSeVencido(
   ctx: Contexto,
   agendamentoId: string,
+  versao?: number,
 ): Promise<Resultado<'no_show' | 'ignorado'>> {
   const ag = await carregarAgendamento(ctx.sql, agendamentoId)
+  if (versaoVencida(ag, versao)) return { resultado: 'ignorado', eventos: [] }
   const toleranciaMin = (ag.toleranciaAte.getTime() - ag.inicio.getTime()) / 60_000
   const vencido = deveMarcarNoShow({
     agora: ctx.agora(),
@@ -33,8 +35,10 @@ export async function marcarNoShowSeVencido(
 export async function enviarLembrete(
   ctx: Contexto,
   agendamentoId: string,
+  versao?: number,
 ): Promise<Resultado<'enviado' | 'ignorado'>> {
   const ag = await carregarAgendamento(ctx.sql, agendamentoId)
+  if (versaoVencida(ag, versao)) return { resultado: 'ignorado', eventos: [] }
   if (ag.status !== 'confirmado' || !ag.clienteUsuarioId)
     return { resultado: 'ignorado', eventos: [] }
   await ctx.notificador.notificar({

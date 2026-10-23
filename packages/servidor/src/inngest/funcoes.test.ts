@@ -159,6 +159,34 @@ describe('lembrarUmaHoraAntes', () => {
   })
 })
 
+describe('agendamento remarcado (Admin 02i)', () => {
+  it('a cobrança da versão antiga se encerra sem pré-autorizar nem capturar', async () => {
+    const { passos, chamadas } = passosDeTeste({
+      carregar: { ...cartao('tokenizado'), remarcado: true },
+    })
+    expect(await cobrarNoCartao(passos, semContexto, 'ag-6', 1)).toBe('remarcado')
+    expect(chamadas).toEqual([['run', 'carregar']])
+  })
+
+  it('remarcado enquanto esperava a captura: não captura pela versão antiga', async () => {
+    const { passos, chamadas } = passosDeTeste({
+      carregar: cartao('pre_autorizado'),
+      'carregar-de-novo': { ...cartao('pre_autorizado'), remarcado: true },
+    })
+    expect(await cobrarNoCartao(passos, semContexto, 'ag-7', 1)).toBe('remarcado')
+    expect(chamadas).toEqual([
+      ['run', 'carregar'],
+      ['run', 'carregar-de-novo'],
+    ])
+  })
+
+  it('o no-show da versão antiga não fica vigiando', async () => {
+    const { passos, chamadas } = passosDeTeste({ carregar: { toleranciaAte: null } })
+    expect(await vigiarNoShow(passos, semContexto, 'ag-8', 1)).toBe('remarcado')
+    expect(chamadas).toEqual([['run', 'carregar']])
+  })
+})
+
 describe('configuração das funções no Inngest', () => {
   const funcoes = criarFuncoes(semContexto)
 

@@ -1,7 +1,13 @@
 import { limiteDeRegularizacao, transicionar } from '@navalha/core'
 import type { Contexto, Resultado } from '../contexto'
 import { ErroDeNegocio } from '../erros'
-import { carregarAgendamento, clienteNoGateway, exigirSubconta, horaLocal } from '../repositorio'
+import {
+  carregarAgendamento,
+  clienteNoGateway,
+  exigirSubconta,
+  horaLocal,
+  versaoVencida,
+} from '../repositorio'
 
 // Cartão pré-autorizado (cartao-pre-autorizado §Cartão e §Fluxo do cartão): o job pré-autoriza na
 // janela de 72h antes do fim do prazo grátis, dá 12h para regularizar se falhar e captura quando
@@ -10,10 +16,12 @@ import { carregarAgendamento, clienteNoGateway, exigirSubconta, horaLocal } from
 export async function preAutorizarAgendamento(
   ctx: Contexto,
   agendamentoId: string,
+  versao?: number,
 ): Promise<Resultado<'aprovada' | 'recusada' | 'ignorado'>> {
   const ag = await carregarAgendamento(ctx.sql, agendamentoId)
   const pagamento = ag.pagamento
   if (
+    versaoVencida(ag, versao) ||
     ag.status !== 'reservado' ||
     pagamento?.meio !== 'cartao' ||
     pagamento.status !== 'tokenizado'
@@ -69,9 +77,11 @@ export async function preAutorizarAgendamento(
 export async function capturarAgendamento(
   ctx: Contexto,
   agendamentoId: string,
+  versao?: number,
 ): Promise<Resultado<'capturado' | 'ignorado'>> {
   const ag = await carregarAgendamento(ctx.sql, agendamentoId)
   const pagamento = ag.pagamento
+  if (versaoVencida(ag, versao)) return { resultado: 'ignorado', eventos: [] }
   const ativo = ag.status === 'confirmado' || ag.status === 'em_atendimento'
   if (!ativo || pagamento?.status !== 'pre_autorizado' || !pagamento.cobrancaId) {
     return { resultado: 'ignorado', eventos: [] }

@@ -75,7 +75,16 @@ export async function carregarServicos(
 
 export async function consultarDisponibilidade(
   ctx: Contexto,
-  params: { barbeariaId: string; data: string; servicoIds: string[]; barbeiroId?: string },
+  params: {
+    barbeariaId: string
+    data: string
+    servicoIds: string[]
+    barbeiroId?: string
+    /** Remarcação: o próprio agendamento não ocupa o horário. */
+    ignorarAgendamentoId?: string
+    /** A equipe encaixa quem chega na hora; o cliente precisa de 15 min de antecedência. */
+    antecedenciaMin?: number
+  },
 ): Promise<Disponibilidade> {
   const [barbearia] = await ctx.sql<{ fuso: string }[]>`
     select fuso from public.barbearias where id = ${params.barbeariaId}`
@@ -108,7 +117,8 @@ export async function consultarDisponibilidade(
   if (params.data < hoje.data || aptos.length === 0) {
     return { data: params.data, duracaoMin, valorBrutoCentavos, servicos, barbeiros: [] }
   }
-  const aPartirDe = params.data === hoje.data ? hoje.minutos + ANTECEDENCIA_MINIMA_MIN : 0
+  const antecedencia = params.antecedenciaMin ?? ANTECEDENCIA_MINIMA_MIN
+  const aPartirDe = params.data === hoje.data ? hoje.minutos + antecedencia : 0
 
   const [loja] = await ctx.sql<{ abre: string; fecha: string }[]>`
     select abre::text, fecha::text from public.horarios_barbearia
@@ -134,6 +144,7 @@ export async function consultarDisponibilidade(
     select barbeiro_id, inicio, fim from public.agendamentos
     where barbeiro_id in ${ctx.sql(aptos)}
       and status in ('reservado', 'confirmado', 'em_atendimento')
+      and id is distinct from ${params.ignorarAgendamentoId ?? null}
       and tstzrange(inicio, fim) && tstzrange(${inicioDoDia}, ${fimDoDia})
     union all
     select barbeiro_id, inicio, fim from public.reservas_horario

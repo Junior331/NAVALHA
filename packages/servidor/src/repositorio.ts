@@ -22,6 +22,8 @@ export interface AgendamentoCompleto {
   plano: Plano
   valorPagoCentavos: number
   usouPremioFidelidade: boolean
+  /** Sobe a cada remarcação; jobs de versões antigas se descartam. */
+  versao: number
   subcontaId: string | null
   pagamento: PagamentoDoAgendamento | null
 }
@@ -65,6 +67,7 @@ export async function carregarAgendamento(
       plano: Plano
       valor_pago_centavos: number
       usou_premio_fidelidade: boolean
+      versao: number
       subconta_id: string | null
       pagamento_id: string | null
       meio: Enum<'meio_pagamento'> | null
@@ -82,7 +85,7 @@ export async function carregarAgendamento(
   >`
     select a.id, a.codigo, a.barbearia_id, b.nome as barbearia_nome, a.barbeiro_id, a.cliente_id,
       c.usuario_id as cliente_usuario_id, a.status, a.inicio, a.fim, a.prazo_gratis_ate,
-      a.tolerancia_ate, a.retencao_pct, a.plano, a.valor_pago_centavos, a.usou_premio_fidelidade,
+      a.tolerancia_ate, a.retencao_pct, a.plano, a.valor_pago_centavos, a.usou_premio_fidelidade, a.versao,
       s.asaas_conta_id as subconta_id,
       p.id as pagamento_id, p.meio, p.status as status_pagamento, p.valor_centavos,
       p.taxa_gateway_centavos, p.valor_estornado_centavos, p.asaas_cobranca_id, p.cartao_token,
@@ -114,6 +117,7 @@ export async function carregarAgendamento(
     plano: linha.plano,
     valorPagoCentavos: linha.valor_pago_centavos,
     usouPremioFidelidade: linha.usou_premio_fidelidade,
+    versao: linha.versao,
     subcontaId: linha.subconta_id,
     pagamento:
       linha.pagamento_id && linha.meio && linha.status_pagamento
@@ -133,6 +137,11 @@ export async function carregarAgendamento(
           }
         : null,
   }
+}
+
+/** Job agendado para uma versão que já foi remarcada: nada a fazer. */
+export function versaoVencida(ag: AgendamentoCompleto, versao?: number): boolean {
+  return versao !== undefined && versao !== ag.versao
 }
 
 export function exigirSubconta(agendamento: AgendamentoCompleto): string {

@@ -32,9 +32,10 @@ async function publicar(passos: Passos, r: Resultado<string>): Promise<void> {
   if (r.eventos.length > 0) await passos.sendEvent('publicar', r.eventos)
 }
 
-async function situacaoDoCartao(obter: ObterContexto, agendamentoId: string) {
+async function situacaoDoCartao(obter: ObterContexto, agendamentoId: string, versao: number) {
   const ag = await carregarAgendamento(obter().sql, agendamentoId)
   return {
+    remarcado: ag.versao !== versao,
     meio: ag.pagamento?.meio ?? null,
     statusPagamento: ag.pagamento?.status ?? null,
     preAutorizarEm: ag.pagamento?.preAutorizarEm?.toISOString() ?? null,
@@ -42,14 +43,22 @@ async function situacaoDoCartao(obter: ObterContexto, agendamentoId: string) {
   }
 }
 
-export async function cobrarNoCartao(passos: Passos, obter: ObterContexto, agendamentoId: string) {
-  const inicial = await passos.run('carregar', () => situacaoDoCartao(obter, agendamentoId))
+// versao: a do evento que disparou a função. Um agendamento remarcado dispara outra execução com
+// a versão nova, e as execuções antigas se encerram ao acordar.
+export async function cobrarNoCartao(
+  passos: Passos,
+  obter: ObterContexto,
+  agendamentoId: string,
+  versao = 1,
+) {
+  const inicial = await passos.run('carregar', () => situacaoDoCartao(obter, agendamentoId, versao))
+  if (inicial.remarcado) return 'remarcado'
   if (inicial.meio !== 'cartao') return 'nao_e_cartao'
 
   if (inicial.statusPagamento === 'tokenizado' && inicial.preAutorizarEm) {
     await passos.sleepUntil('aguardar-janela-de-72h', inicial.preAutorizarEm)
     const pre = await passos.run('pre-autorizar', () =>
-      preAutorizarAgendamento(obter(), agendamentoId),
+      preAutorizarAgendamento(obter(), agendamentoId, versao),
     )
     if (pre.resultado === 'recusada') {
       const regularizou = await passos.waitForEvent('aguardar-regularizacao', {
@@ -66,10 +75,13 @@ export async function cobrarNoCartao(passos: Passos, obter: ObterContexto, agend
     }
   }
 
-  const atual = await passos.run('carregar-de-novo', () => situacaoDoCartao(obter, agendamentoId))
+  const atual = await passos.run('carregar-de-novo', () =>
+    situacaoDoCartao(obter, agendamentoId, versao),
+  )
+  if (atual.remarcado) return 'remarcado'
   if (atual.statusPagamento !== 'pre_autorizado' || !atual.capturarEm) return 'sem_captura'
   await passos.sleepUntil('aguardar-fim-do-prazo-gratis', atual.capturarEm)
-  await passos.run('capturar', () => capturarAgendamento(obter(), agendamentoId))
+  await passos.run('capturar', () => capturarAgendamento(obter(), agendamentoId, versao))
   return 'capturado'
 }
 
@@ -77,26 +89,36 @@ export async function lembrarUmaHoraAntes(
   passos: Passos,
   obter: ObterContexto,
   agendamentoId: string,
+  versao = 1,
 ) {
   const { lembrarEm } = await passos.run('carregar', async () => {
     const ctx = obter()
     const ag = await carregarAgendamento(ctx.sql, agendamentoId)
     const quando = new Date(ag.inicio.getTime() - 3_600_000)
-    return { lembrarEm: quando.getTime() > ctx.agora().getTime() ? quando.toISOString() : null }
+    const aindaDa = ag.versao === versao && quando.getTime() > ctx.agora().getTime()
+    return { lembrarEm: aindaDa ? quando.toISOString() : null }
   })
   if (!lembrarEm) return 'sem_lembrete'
   await passos.sleepUntil('aguardar-lembrete', lembrarEm)
-  const r = await passos.run('enviar', () => enviarLembrete(obter(), agendamentoId))
+  const r = await passos.run('enviar', () => enviarLembrete(obter(), agendamentoId, versao))
   return r.resultado
 }
 
-export async function vigiarNoShow(passos: Passos, obter: ObterContexto, agendamentoId: string) {
+export async function vigiarNoShow(
+  passos: Passos,
+  obter: ObterContexto,
+  agendamentoId: string,
+  versao = 1,
+) {
   const { toleranciaAte } = await passos.run('carregar', async () => {
     const ag = await carregarAgendamento(obter().sql, agendamentoId)
-    return { toleranciaAte: ag.toleranciaAte.toISOString() }
+    return { toleranciaAte: ag.versao === versao ? ag.toleranciaAte.toISOString() : null }
   })
+  if (!toleranciaAte) return 'remarcado'
   await passos.sleepUntil('aguardar-tolerancia', toleranciaAte)
-  const r = await passos.run('marcar-no-show', () => marcarNoShowSeVencido(obter(), agendamentoId))
+  const r = await passos.run('marcar-no-show', () =>
+    marcarNoShowSeVencido(obter(), agendamentoId, versao),
+  )
   await publicar(passos, r)
   return r.resultado
 }

@@ -17,3 +17,7 @@ Thumbs.db
 .claude/agents-backup/
 .claude/settings.json.bak
 .claude/memory/
+# Playwright
+test-results/
+playwright-report/
+apps/web/e2e/.sessao/

@@ -23,7 +23,7 @@ export interface ConfigServidor {
 
 // Os serviços não publicam eventos: devolvem os eventos para quem chamou (API ou Inngest).
 export type EventoInterno =
-  | { name: 'agendamento/criado'; data: { agendamentoId: string } }
+  | { name: 'agendamento/criado'; data: { agendamentoId: string; versao?: number } }
   | { name: 'agendamento/cancelado'; data: { agendamentoId: string } }
   | {
       name: 'agendamento/finalizado'

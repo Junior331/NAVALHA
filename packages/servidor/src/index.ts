@@ -46,6 +46,7 @@ export {
   iniciarAtendimento,
   marcarNoShow,
   previaDoCancelamento,
+  previaDoNoShow,
   type PreviaCancelamento,
 } from './casos/atendimento'
 export {
@@ -59,3 +60,11 @@ export {
 } from './casos/cadastro'
 export { consultarDisponibilidade, type Disponibilidade } from './casos/disponibilidade'
 export { agendamentosAfetados, pausarAgenda, removerBarbeiro } from './casos/equipe'
+export {
+  agendarNoBalcao,
+  buscarClientes,
+  horariosDaEquipe,
+  horariosParaRemarcar,
+  remarcarAgendamento,
+  type EntradaBalcao,
+} from './casos/agenda'

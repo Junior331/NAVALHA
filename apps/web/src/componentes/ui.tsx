@@ -154,6 +154,7 @@ export function Modal({
   rodape?: ReactNode
 }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const idTitulo = useId()
   useEffect(() => {
     const dialogo = ref.current
     if (!dialogo) return
@@ -161,10 +162,10 @@ export function Modal({
     if (!aberto && dialogo.open) dialogo.close()
   }, [aberto])
   return (
-    <dialog ref={ref} className={s.modal} onClose={aoFechar} aria-labelledby="modal-titulo">
+    <dialog ref={ref} className={s.modal} onClose={aoFechar} aria-labelledby={idTitulo}>
       <div className={s.modalCabecalho}>
         <div>
-          <h2 id="modal-titulo">{titulo}</h2>
+          <h2 id={idTitulo}>{titulo}</h2>
           {descricao ? (
             <p style={{ color: 'var(--texto-suave)', marginTop: 4 }}>{descricao}</p>
           ) : null}

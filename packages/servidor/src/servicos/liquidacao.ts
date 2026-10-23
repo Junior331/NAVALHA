@@ -133,7 +133,7 @@ async function registrar(
       insert into public.lancamentos (barbearia_id, agendamento_id, tipo, evento_final, valor_pago_centavos,
         cliente_centavos, credito_cliente_centavos, barbearia_centavos, navalha_centavos,
         taxa_gateway_centavos, quem_paga_gateway)
-      values (${ag.barbeariaId}, ${ag.id}, 'liquidacao', ${evento}, ${ag.valorPagoCentavos},
+      values (${ag.barbeariaId}, ${ag.id}, 'liquidacao', ${evento}, ${cobranca ? ag.valorPagoCentavos : 0},
         ${l.devolvidoAoCliente}, ${l.creditoAoCliente}, ${l.barbearia}, ${l.navalha},
         ${l.custoGateway}, ${l.quemPagaGateway})
       on conflict (agendamento_id) where tipo = 'liquidacao' do nothing

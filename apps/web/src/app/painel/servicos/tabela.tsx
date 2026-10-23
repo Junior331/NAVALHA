@@ -354,15 +354,13 @@ function FormularioDeServico({
         .eq('servico_id', servicoId)
         .in('membro_id', sair)
     if (entrar.length) {
-      await supabase
-        .from('servico_barbeiro')
-        .insert(
-          entrar.map((membro_id) => ({
-            servico_id: servicoId,
-            membro_id,
-            barbearia_id: barbeariaId,
-          })),
-        )
+      await supabase.from('servico_barbeiro').insert(
+        entrar.map((membro_id) => ({
+          servico_id: servicoId,
+          membro_id,
+          barbearia_id: barbeariaId,
+        })),
+      )
     }
     setSalvando(false)
     aoFechar()

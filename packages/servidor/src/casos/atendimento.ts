@@ -81,6 +81,41 @@ export interface PreviaCancelamento {
   opcoes: ({ escolhaPix?: EscolhaPixNoPrazo } & Liquidacao)[]
 }
 
+function entradaDaPrevia(ctx: Contexto, ag: AgendamentoCompleto, evento: EventoFinal) {
+  const pagamento = ag.pagamento
+  const cobrado = pagamento?.status === 'capturado' || pagamento?.status === 'pix_pago'
+  const cartaoAindaNaoCapturado = pagamento?.meio === 'cartao' && !cobrado
+  const capturaAinda = evento === 'cancelado_fora_do_prazo' || evento === 'no_show'
+  // G: o já cobrado, ou a estimativa da tarifa cheia do cartão se a captura ainda vai acontecer.
+  const g = cobrado
+    ? pagamento.taxaGatewayCentavos
+    : pagamento?.meio === 'cartao' && capturaAinda
+      ? percentualPraBaixo(ag.valorPagoCentavos, 299) + 49
+      : 0
+  return {
+    evento,
+    plano: ag.plano,
+    meio: pagamento?.meio ?? ('pix' as const),
+    valorPago: pagamento ? ag.valorPagoCentavos : 0,
+    retencaoPct: ag.retencaoPct,
+    taxaGateway: g,
+    custoEstorno: evento === 'cancelado_pela_barbearia' && !cartaoAindaNaoCapturado ? g : 0,
+    custoPix: ctx.config.custoEstornoPix,
+  }
+}
+
+/** Valores antes de marcar no-show (backlog Admin · No-show): a retenção configurada. */
+export async function previaDoNoShow(
+  ctx: Contexto,
+  usuario: Usuario,
+  agendamentoId: string,
+): Promise<Liquidacao> {
+  const ag = await carregarAgendamento(ctx.sql, agendamentoId)
+  await exigirEquipe(ctx, usuario, ag)
+  proximo(ag.status, 'no_show')
+  return liquidar(entradaDaPrevia(ctx, ag, 'no_show'))
+}
+
 /** O que acontece com o dinheiro se cancelar agora (Figma Cliente 15 e Admin 02j). */
 export async function previaDoCancelamento(
   ctx: Contexto,
@@ -93,26 +128,8 @@ export async function previaDoCancelamento(
   if (!evento) throw new ErroDeNegocio('estado_invalido', 'Não dá para cancelar este agendamento')
   proximo(ag.status, eventoDoCancelamento(ag, quem, ctx.agora()))
 
-  const pagamento = ag.pagamento
-  const cobrado = pagamento?.status === 'capturado' || pagamento?.status === 'pix_pago'
-  const cartaoAindaNaoCapturado = pagamento?.meio === 'cartao' && !cobrado
-  // G: o já cobrado, ou a estimativa da tarifa cheia do cartão se a captura ainda vai acontecer.
-  const g = cobrado
-    ? pagamento.taxaGatewayCentavos
-    : pagamento?.meio === 'cartao' && evento === 'cancelado_fora_do_prazo'
-      ? percentualPraBaixo(ag.valorPagoCentavos, 299) + 49
-      : 0
-  const base = {
-    evento,
-    plano: ag.plano,
-    meio: pagamento?.meio ?? ('pix' as const),
-    valorPago: pagamento ? ag.valorPagoCentavos : 0,
-    retencaoPct: ag.retencaoPct,
-    taxaGateway: g,
-    custoEstorno: evento === 'cancelado_pela_barbearia' && !cartaoAindaNaoCapturado ? g : 0,
-    custoPix: ctx.config.custoEstornoPix,
-  }
-  if (pagamento?.meio === 'pix' && evento === 'cancelado_no_prazo') {
+  const base = entradaDaPrevia(ctx, ag, evento)
+  if (ag.pagamento?.meio === 'pix' && evento === 'cancelado_no_prazo') {
     return {
       evento,
       opcoes: (['credito', 'reembolso'] as const).map((escolhaPix) => ({

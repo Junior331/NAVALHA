@@ -21,7 +21,10 @@ export const inngest = new Inngest({ id: 'navalha' })
 type IdDoAgendamento = { agendamentoId: string }
 
 export const eventos = {
-  agendamentoCriado: eventType('agendamento/criado', { schema: staticSchema<IdDoAgendamento>() }),
+  // versao sobe a cada remarcação; ausente no agendamento recém-criado (versão 1).
+  agendamentoCriado: eventType('agendamento/criado', {
+    schema: staticSchema<{ agendamentoId: string; versao?: number }>(),
+  }),
   agendamentoCancelado: eventType('agendamento/cancelado', {
     schema: staticSchema<IdDoAgendamento>(),
   }),
@@ -49,16 +52,23 @@ export function criarFuncoes(obterContexto: () => Contexto) {
   return {
     cobrancaNoCartao: inngest.createFunction(
       { id: 'cobranca-no-cartao', triggers: [eventos.agendamentoCriado], cancelOn: cancelarJunto },
-      ({ event, step }) => cobrarNoCartao(passosDo(step), obterContexto, event.data.agendamentoId),
+      ({ event, step }) =>
+        cobrarNoCartao(passosDo(step), obterContexto, event.data.agendamentoId, event.data.versao),
     ),
     lembrete: inngest.createFunction(
       { id: 'lembrete-1h-antes', triggers: [eventos.agendamentoCriado], cancelOn: cancelarJunto },
       ({ event, step }) =>
-        lembrarUmaHoraAntes(passosDo(step), obterContexto, event.data.agendamentoId),
+        lembrarUmaHoraAntes(
+          passosDo(step),
+          obterContexto,
+          event.data.agendamentoId,
+          event.data.versao,
+        ),
     ),
     noShow: inngest.createFunction(
       { id: 'no-show', triggers: [eventos.agendamentoCriado], cancelOn: cancelarJunto },
-      ({ event, step }) => vigiarNoShow(passosDo(step), obterContexto, event.data.agendamentoId),
+      ({ event, step }) =>
+        vigiarNoShow(passosDo(step), obterContexto, event.data.agendamentoId, event.data.versao),
     ),
     liquidacao: inngest.createFunction(
       {
