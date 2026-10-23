@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   aplicarCupom,
+  melhorOferta,
   precoDoServico,
   validarCupom,
   type Cupom,
@@ -109,5 +110,56 @@ describe('precoDoServico', () => {
   it('desconto fixo nunca deixa o preço negativo (Admin 05: R$ 95 com −R$ 10)', () => {
     expect(precoDoServico(9500, { tipo: 'fixo', valor: 1000 })).toBe(8500)
     expect(precoDoServico(500, { tipo: 'fixo', valor: 1000 })).toBe(0)
+  })
+})
+
+describe('melhorOferta (oferta automática, sem código)', () => {
+  const itens = [
+    { servicoId: 'corte', preco: 4000 },
+    { servicoId: 'pigmentacao', preco: 6000 },
+  ]
+  const oferta = (id: string, parcial: Partial<Cupom>) => ({
+    id,
+    cupom: { ...fimDeSemana, servicoIds: 'todos' as const, ...parcial },
+    usosTotais: 0,
+    usosDoCliente: 0,
+  })
+  const pedido = {
+    barbeariaId: 'ze',
+    inicioDoAtendimento: sabado,
+    diaDaSemana: 6,
+    itens,
+  }
+
+  it('escolhe a oferta válida de maior desconto', () => {
+    const r = melhorOferta(
+      [
+        oferta('dez-por-cento', { desconto: { tipo: 'percentual', pct: 10 } }),
+        oferta('quinze-reais', { desconto: { tipo: 'fixo', valor: 1500 } }),
+      ],
+      pedido,
+    )
+    expect(r).toEqual({
+      promocaoId: 'quinze-reais',
+      valor: { valorBruto: 10000, desconto: 1500, valorPago: 8500 },
+    })
+  })
+
+  it('ignora as ofertas que não valem para o pedido (dia, esgotada, já usada)', () => {
+    const r = melhorOferta(
+      [
+        oferta('so-terca', { diasSemana: [2], desconto: { tipo: 'percentual', pct: 50 } }),
+        { ...oferta('esgotada', { limiteUsos: 3 }), usosTotais: 3 },
+        { ...oferta('ja-usada', {}), usosDoCliente: 1 },
+        oferta('vale', { desconto: { tipo: 'percentual', pct: 5 } }),
+      ],
+      pedido,
+    )
+    expect(r?.promocaoId).toBe('vale')
+  })
+
+  it('sem oferta válida, não há desconto', () => {
+    expect(melhorOferta([oferta('so-terca', { diasSemana: [2] })], pedido)).toBeNull()
+    expect(melhorOferta([], { ...pedido, diaDaSemana: 2, inicioDoAtendimento: terca })).toBeNull()
   })
 })

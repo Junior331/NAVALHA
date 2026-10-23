@@ -211,6 +211,43 @@ describe('criarAgendamento', () => {
     expect(usos).toHaveLength(1)
   })
 
+  it('oferta automática vale sem código e conta o uso; só nos dias marcados', async () => {
+    const { ctx, b, cliente, entrada } = await cenario()
+    // Quarta-feira (3) sim, terça não: a mesma oferta não vale na terça seguinte.
+    await sql`
+      insert into public.promocoes (barbearia_id, nome, tipo, desconto_tipo, desconto_valor,
+        dias_semana, inicio, fim)
+      values (${b.barbeariaId}, 'Quarta do corte', 'automatica', 'fixo', 1500, '{3}',
+        '2026-10-01', '2026-11-30')`
+
+    const quarta = await criarAgendamento(ctx, cliente, entrada())
+    expect(quarta.saida).toMatchObject({ valorPagoCentavos: 8500 })
+    const id = quarta.saida.tipo === 'agendado' ? quarta.saida.agendamentoId : ''
+    expect(await sql`select 1 from public.cupom_usos where agendamento_id = ${id}`).toHaveLength(1)
+
+    const outro = await criarCliente(sql)
+    const terca = await criarAgendamento(
+      ctx,
+      comoUsuario(outro.usuarioId),
+      entrada({ inicio: TERCA_SEGUINTE_14H }),
+    )
+    expect(terca.saida).toMatchObject({ valorPagoCentavos: 10000 })
+  })
+
+  it('com cupom, a oferta automática não soma', async () => {
+    const { ctx, b, cliente, entrada } = await cenario()
+    await sql`
+      insert into public.promocoes (barbearia_id, nome, tipo, codigo, desconto_tipo, desconto_valor, inicio, fim)
+      values
+        (${b.barbeariaId}, 'Cupom', 'cupom', 'ZE10', 'percentual', 10, '2026-10-01', '2026-11-30')`
+    await sql`
+      insert into public.promocoes (barbearia_id, nome, tipo, desconto_tipo, desconto_valor, inicio, fim)
+      values (${b.barbeariaId}, 'Oferta', 'automatica', 'fixo', 500, '2026-10-01', '2026-11-30')`
+
+    const r = await criarAgendamento(ctx, cliente, entrada({ cupom: 'ZE10' }))
+    expect(r.saida).toMatchObject({ valorPagoCentavos: 9000 })
+  })
+
   it('cupom de outra barbearia não vale', async () => {
     const { ctx, cliente, entrada } = await cenario()
     const erro = await erroDe(criarAgendamento(ctx, cliente, entrada({ cupom: 'NAOEXISTE' })))

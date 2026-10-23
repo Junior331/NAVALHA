@@ -1,0 +1,93 @@
+.previa {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--raio);
+  background: var(--marca-suave);
+  border: 1px solid var(--borda);
+  font-size: 14px;
+  color: var(--texto-2);
+}
+
+.previa strong {
+  font-size: 16px;
+  color: var(--texto);
+}
+
+.selo {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--marca);
+  color: #16130f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.codigo {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--marca-texto);
+}
+
+.grupo {
+  border: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.grupo legend {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.servicos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px;
+  padding-left: 4px;
+}
+
+.dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dias button {
+  min-width: 48px;
+  min-height: 36px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio-p);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.dias button[aria-pressed='true'] {
+  background: var(--primario);
+  color: var(--primario-texto);
+  border-color: var(--primario);
+  font-weight: 600;
+}
+
+.ajuda {
+  font-size: 13px;
+  color: var(--texto-suave);
+}

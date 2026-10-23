@@ -3,11 +3,13 @@ import {
   aplicarCupom,
   aplicarPremio,
   fimDaTolerancia,
+  melhorOferta,
   fimDoPrazoGratis,
   partesLocais,
   planejarCobrancaNoCartao,
   temPremio,
   validarCupom,
+  type Cupom,
   type ItemDoPedido,
   type MotivoCupomInvalido,
   type Plano,
@@ -255,45 +257,34 @@ export async function calcularPreco(
     return { valor, promocaoId: null, usouPremio: true }
   }
 
-  if (!params.cupom) return semDesconto
+  // Sem cupom, vale a melhor oferta automática do dia (Admin 07); cupom e oferta não somam.
+  if (!params.cupom) {
+    const ofertas = await promocoesValendo(ctx, params, ctx.sql`p.tipo = 'automatica'`)
+    const melhor = melhorOferta(
+      ofertas.map((o) => ({
+        id: o.id,
+        cupom: cupomDaPromocao(o, params.barbeariaId),
+        usosTotais: o.usos_totais,
+        usosDoCliente: o.usos_do_cliente,
+      })),
+      {
+        barbeariaId: params.barbeariaId,
+        inicioDoAtendimento: params.inicio,
+        diaDaSemana: params.diaSemana,
+        itens: params.itens,
+      },
+    )
+    return melhor ? { ...melhor, usouPremio: false } : semDesconto
+  }
 
-  const [promocao] = await ctx.sql<
-    {
-      id: string
-      desconto_tipo: 'percentual' | 'fixo'
-      desconto_valor: number
-      servico_ids: string[] | null
-      dias_semana: number[] | null
-      inicio: Date
-      fim: Date
-      limite_usos: number | null
-      um_uso_por_cliente: boolean
-      usos_totais: number
-      usos_do_cliente: number
-    }[]
-  >`
-    select p.id, p.desconto_tipo, p.desconto_valor, p.servico_ids, p.dias_semana, p.inicio, p.fim,
-      p.limite_usos, p.um_uso_por_cliente,
-      (select count(*) from public.cupom_usos u where u.promocao_id = p.id) as usos_totais,
-      (select count(*) from public.cupom_usos u where u.promocao_id = p.id and u.cliente_id = ${params.clienteId}) as usos_do_cliente
-    from public.promocoes p
-    where p.barbearia_id = ${params.barbeariaId} and p.tipo = 'cupom' and p.ativa
-      and upper(p.codigo) = upper(${params.cupom.trim()})`
+  const [promocao] = await promocoesValendo(
+    ctx,
+    params,
+    ctx.sql`p.tipo = 'cupom' and upper(p.codigo) = upper(${params.cupom.trim()})`,
+  )
   if (!promocao) throw new ErroDeNegocio('dados_invalidos', 'Cupom não encontrado nesta barbearia')
 
-  const cupom = {
-    barbeariaId: params.barbeariaId,
-    desconto:
-      promocao.desconto_tipo === 'percentual'
-        ? ({ tipo: 'percentual', pct: promocao.desconto_valor } as const)
-        : ({ tipo: 'fixo', valor: promocao.desconto_valor } as const),
-    servicoIds: promocao.servico_ids ?? ('todos' as const),
-    diasSemana: promocao.dias_semana,
-    inicio: promocao.inicio,
-    fim: promocao.fim,
-    limiteUsos: promocao.limite_usos,
-    umUsoPorCliente: promocao.um_uso_por_cliente,
-  }
+  const cupom = cupomDaPromocao(promocao, params.barbeariaId)
   const validacao = validarCupom({
     cupom,
     barbeariaId: params.barbeariaId,
@@ -305,6 +296,50 @@ export async function calcularPreco(
   })
   if (!validacao.ok) throw new ErroDeNegocio('dados_invalidos', MENSAGENS_CUPOM[validacao.motivo])
   return { valor: aplicarCupom(params.itens, cupom), promocaoId: promocao.id, usouPremio: false }
+}
+
+interface LinhaDePromocao {
+  id: string
+  desconto_tipo: 'percentual' | 'fixo'
+  desconto_valor: number
+  servico_ids: string[] | null
+  dias_semana: number[] | null
+  inicio: Date
+  fim: Date
+  limite_usos: number | null
+  um_uso_por_cliente: boolean
+  usos_totais: number
+  usos_do_cliente: number
+}
+
+function promocoesValendo(
+  ctx: Contexto,
+  params: { barbeariaId: string; clienteId: string },
+  filtro: ReturnType<Sql>,
+): Promise<LinhaDePromocao[]> {
+  return ctx.sql<LinhaDePromocao[]>`
+    select p.id, p.desconto_tipo, p.desconto_valor, p.servico_ids, p.dias_semana, p.inicio, p.fim,
+      p.limite_usos, p.um_uso_por_cliente,
+      (select count(*) from public.cupom_usos u where u.promocao_id = p.id) as usos_totais,
+      (select count(*) from public.cupom_usos u where u.promocao_id = p.id and u.cliente_id = ${params.clienteId}) as usos_do_cliente
+    from public.promocoes p
+    where p.barbearia_id = ${params.barbeariaId} and p.ativa and ${filtro}`
+}
+
+function cupomDaPromocao(promocao: LinhaDePromocao, barbeariaId: string): Cupom {
+  return {
+    barbeariaId,
+    desconto:
+      promocao.desconto_tipo === 'percentual'
+        ? { tipo: 'percentual', pct: promocao.desconto_valor }
+        : { tipo: 'fixo', valor: promocao.desconto_valor },
+    servicoIds: promocao.servico_ids ?? 'todos',
+    diasSemana: promocao.dias_semana,
+    inicio: promocao.inicio,
+    fim: promocao.fim,
+    limiteUsos: promocao.limite_usos,
+    umUsoPorCliente: promocao.um_uso_por_cliente,
+  }
 }
 
 async function travarHorario(tx: Transacao, pedido: Pedido, agora: Date): Promise<void> {

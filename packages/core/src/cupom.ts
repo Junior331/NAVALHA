@@ -79,6 +79,39 @@ export function somaDosPrecos(itens: ItemDoPedido[]): Centavos {
   return itens.reduce((total, i) => total + i.preco, 0)
 }
 
+/**
+ * Oferta automática (Admin 07, tipo "automática"): vale sem código. Entre as que valem para o
+ * pedido, fica a de maior desconto; não soma com cupom nem com outra oferta.
+ */
+export function melhorOferta(
+  ofertas: { id: string; cupom: Cupom; usosTotais: number; usosDoCliente: number }[],
+  pedido: {
+    barbeariaId: string
+    inicioDoAtendimento: Date
+    diaDaSemana: number
+    itens: ItemDoPedido[]
+  },
+): { promocaoId: string; valor: ValorComDesconto } | null {
+  let melhor: { promocaoId: string; valor: ValorComDesconto } | null = null
+  for (const oferta of ofertas) {
+    const validacao = validarCupom({
+      cupom: oferta.cupom,
+      barbeariaId: pedido.barbeariaId,
+      inicioDoAtendimento: pedido.inicioDoAtendimento,
+      diaDaSemana: pedido.diaDaSemana,
+      servicoIds: pedido.itens.map((i) => i.servicoId),
+      usosTotais: oferta.usosTotais,
+      usosDoCliente: oferta.usosDoCliente,
+    })
+    if (!validacao.ok) continue
+    const valor = aplicarCupom(pedido.itens, oferta.cupom)
+    if (valor.desconto > 0 && (!melhor || valor.desconto > melhor.valor.desconto)) {
+      melhor = { promocaoId: oferta.id, valor }
+    }
+  }
+  return melhor
+}
+
 function abrange(cupom: Cupom, servicoId: string): boolean {
   return cupom.servicoIds === 'todos' || cupom.servicoIds.includes(servicoId)
 }
