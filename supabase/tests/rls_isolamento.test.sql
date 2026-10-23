@@ -28,17 +28,17 @@ insert into public.servicos (id, barbearia_id, nome, duracao_min, preco_centavos
   ('33333333-0000-0000-0000-00000000000a', 'aaaaaaaa-0000-0000-0000-000000000000', 'Corte', 40, 4000),
   ('33333333-0000-0000-0000-00000000000b', 'bbbbbbbb-0000-0000-0000-000000000000', 'Corte', 40, 4500);
 
-insert into public.agendamentos (barbearia_id, cliente_id, barbeiro_id, inicio, fim, status, valor_pago_centavos) values
+insert into public.agendamentos (barbearia_id, cliente_id, barbeiro_id, inicio, fim, status, valor_bruto_centavos, valor_pago_centavos, prazo_gratis_ate, tolerancia_ate, retencao_pct, plano) values
   ('aaaaaaaa-0000-0000-0000-000000000000', '22222222-0000-0000-0000-0000000c0001', '11111111-0000-0000-0000-00000000a002',
-   '2026-10-20 13:00-03', '2026-10-20 13:40-03', 'confirmado', 4000),
+   '2026-10-20 13:00-03', '2026-10-20 13:40-03', 'confirmado', 4000, 4000, now(), now(), 50, 'free'),
   ('bbbbbbbb-0000-0000-0000-000000000000', '22222222-0000-0000-0000-0000000c0002', '11111111-0000-0000-0000-00000000b001',
-   '2026-10-20 14:00-03', '2026-10-20 14:40-03', 'confirmado', 4500);
+   '2026-10-20 14:00-03', '2026-10-20 14:40-03', 'confirmado', 4500, 4500, now(), now(), 50, 'free');
 
 -- Integridade: o barbeiro do agendamento precisa ser da mesma barbearia.
 select throws_ok(
-  $$ insert into public.agendamentos (barbearia_id, cliente_id, barbeiro_id, inicio, fim, status, valor_pago_centavos)
+  $$ insert into public.agendamentos (barbearia_id, cliente_id, barbeiro_id, inicio, fim, status, valor_bruto_centavos, valor_pago_centavos, prazo_gratis_ate, tolerancia_ate, retencao_pct, plano)
      values ('bbbbbbbb-0000-0000-0000-000000000000', '22222222-0000-0000-0000-0000000c0002',
-             '11111111-0000-0000-0000-00000000a002', '2026-10-21 10:00-03', '2026-10-21 10:40-03', 'confirmado', 4500) $$,
+             '11111111-0000-0000-0000-00000000a002', '2026-10-21 10:00-03', '2026-10-21 10:40-03', 'confirmado', 4500, 4500, now(), now(), 50, 'free') $$,
   '23503', null, 'barbeiro de outra barbearia não pode atender o agendamento'
 );
 
@@ -62,9 +62,9 @@ select is(
   4200, 'dono A altera serviço de A'
 );
 select throws_ok(
-  $$ insert into public.agendamentos (barbearia_id, cliente_id, barbeiro_id, inicio, fim, status, valor_pago_centavos)
+  $$ insert into public.agendamentos (barbearia_id, cliente_id, barbeiro_id, inicio, fim, status, valor_bruto_centavos, valor_pago_centavos, prazo_gratis_ate, tolerancia_ate, retencao_pct, plano)
      values ('aaaaaaaa-0000-0000-0000-000000000000', '22222222-0000-0000-0000-0000000c0001',
-             '11111111-0000-0000-0000-00000000a002', '2026-10-22 10:00-03', '2026-10-22 10:40-03', 'confirmado', 0) $$,
+             '11111111-0000-0000-0000-00000000a002', '2026-10-22 10:00-03', '2026-10-22 10:40-03', 'confirmado', 0, 0, now(), now(), 50, 'free') $$,
   '42501', null, 'agendamento só é criado pela API (service role), nunca direto pelo usuário'
 );
 
@@ -91,8 +91,8 @@ select throws_ok(
   'select count(*) from public.agendamentos', '42501', null,
   'visitante não tem acesso à tabela de agendamentos'
 );
-select is((select count(*) from public.barbearias)::int, 2, 'visitante vê as barbearias (página pública)');
-select is((select count(*) from public.servicos)::int, 2, 'visitante vê os serviços ativos');
+select is((select count(*) from public.barbearias where id in ('aaaaaaaa-0000-0000-0000-000000000000', 'bbbbbbbb-0000-0000-0000-000000000000'))::int, 2, 'visitante vê as barbearias (página pública)');
+select is((select count(*) from public.servicos where barbearia_id in ('aaaaaaaa-0000-0000-0000-000000000000', 'bbbbbbbb-0000-0000-0000-000000000000'))::int, 2, 'visitante vê os serviços ativos');
 
 reset role;
 select * from finish();

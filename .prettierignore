@@ -6,3 +6,4 @@ skills-lock.json
 next-env.d.ts
 .next/
 .expo/
+packages/db/src/database.types.ts
