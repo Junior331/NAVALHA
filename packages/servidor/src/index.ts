@@ -58,3 +58,4 @@ export {
   type DadosBarbearia,
 } from './casos/cadastro'
 export { consultarDisponibilidade, type Disponibilidade } from './casos/disponibilidade'
+export { agendamentosAfetados, pausarAgenda, removerBarbeiro } from './casos/equipe'
