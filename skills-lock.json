@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "cognitive-walkthrough": {
+      "source": "mastepanoski/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/cognitive-walkthrough/SKILL.md",
+      "computedHash": "9bb6903fbe10dfe958924e80128d745bfb0f5ae96d6a9052917b39d995af0ec1"
+    },
+    "nielsen-heuristics-audit": {
+      "source": "mastepanoski/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nielsen-heuristics-audit/SKILL.md",
+      "computedHash": "3b04844a61538f1f524cd8a3eed6145415926b0507f60a9f1f5764c46793821d"
+    },
+    "ui-design-review": {
+      "source": "mastepanoski/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ui-design-review/SKILL.md",
+      "computedHash": "66f9d1fb205bb74b3d6742268f3ace5509ee00432e659cb87870caad4128e685"
+    },
+    "ux-audit-rethink": {
+      "source": "mastepanoski/claude-skills",
+      "sourceType": "github",
+      "skillPath": "skills/ux-audit-rethink/SKILL.md",
+      "computedHash": "b70d95b6eb2bf61c2b5ffb19290d4857236a6f9b647f320116316d7cfcbcd0b3"
+    },
+    "video-walkthrough": {
+      "source": "avatechdir/video-walkthrough-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/video-walkthrough/SKILL.md",
+      "computedHash": "2e74a7c1b6263c9ac8ffb998407a1f3da90acb326bd46313a0eb9d8252fc7e4a"
+    }
+  }
+}

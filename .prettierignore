@@ -1,0 +1,8 @@
+docs/
+.claude/
+.agents/
+pnpm-lock.yaml
+skills-lock.json
+next-env.d.ts
+.next/
+.expo/

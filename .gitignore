@@ -1,0 +1,19 @@
+node_modules/
+.turbo/
+dist/
+coverage/
+.next/
+out/
+.expo/
+web-build/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+# Claude Code: local state and backups of another project
+.claude/_agent-office-backup-*/
+.claude/agents-backup/
+.claude/settings.json.bak
+.claude/memory/
