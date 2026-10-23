@@ -59,7 +59,8 @@ export function validarCupom(params: {
     return invalido('dia_invalido')
   }
   if (!params.servicoIds.some((id) => abrange(cupom, id))) return invalido('servico_nao_abrangido')
-  if (cupom.limiteUsos !== null && params.usosTotais >= cupom.limiteUsos) return invalido('esgotado')
+  if (cupom.limiteUsos !== null && params.usosTotais >= cupom.limiteUsos)
+    return invalido('esgotado')
   if (cupom.umUsoPorCliente && params.usosDoCliente > 0) return invalido('ja_usado')
   return { ok: true }
 }

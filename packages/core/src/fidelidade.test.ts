@@ -38,12 +38,18 @@ describe('atualizarFidelidade', () => {
   })
 
   it('cancelar no prazo devolve o prêmio (não consome)', () => {
-    expect(atualizarFidelidade(5, config, { evento: 'cancelado_no_prazo', usouPremio: true })).toBe(5)
+    expect(atualizarFidelidade(5, config, { evento: 'cancelado_no_prazo', usouPremio: true })).toBe(
+      5,
+    )
   })
 
   it('fidelidade desligada não conta', () => {
     expect(
-      atualizarFidelidade(3, { ...config, ativa: false }, { evento: 'concluido', usouPremio: false }),
+      atualizarFidelidade(
+        3,
+        { ...config, ativa: false },
+        { evento: 'concluido', usouPremio: false },
+      ),
     ).toBe(3)
   })
 })

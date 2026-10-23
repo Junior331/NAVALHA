@@ -36,7 +36,10 @@ describe('validarCupom', () => {
 
   it.each([
     [{ barbeariaId: 'outra' }, 'outra_barbearia'],
-    [{ inicioDoAtendimento: new Date('2026-10-26T10:00:00-03:00'), diaDaSemana: 1 }, 'fora_do_periodo'],
+    [
+      { inicioDoAtendimento: new Date('2026-10-26T10:00:00-03:00'), diaDaSemana: 1 },
+      'fora_do_periodo',
+    ],
     [{ inicioDoAtendimento: terca, diaDaSemana: 2 }, 'dia_invalido'],
     [{ servicoIds: ['corte'] }, 'servico_nao_abrangido'],
     [{ usosTotais: 100 }, 'esgotado'],
@@ -67,11 +70,19 @@ describe('aplicarCupom', () => {
 
   it('valor fixo: nunca passa do total dos serviços abrangidos', () => {
     const fixo: Cupom = { ...fimDeSemana, desconto: { tipo: 'fixo', valor: 9000 } }
-    expect(aplicarCupom(itens, fixo)).toEqual({ valorBruto: 10000, desconto: 6000, valorPago: 4000 })
+    expect(aplicarCupom(itens, fixo)).toEqual({
+      valorBruto: 10000,
+      desconto: 6000,
+      valorPago: 4000,
+    })
   })
 
   it('"todos os serviços" abrange o pedido inteiro', () => {
-    const todos: Cupom = { ...fimDeSemana, servicoIds: 'todos', desconto: { tipo: 'fixo', valor: 1000 } }
+    const todos: Cupom = {
+      ...fimDeSemana,
+      servicoIds: 'todos',
+      desconto: { tipo: 'fixo', valor: 1000 },
+    }
     expect(aplicarCupom(itens, todos).valorPago).toBe(9000)
   })
 })

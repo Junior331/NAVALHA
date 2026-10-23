@@ -10,8 +10,7 @@ export function saldoDisponivel(params: { saldo: Centavos; taxasATransferir: Cen
 }
 
 export type ResultadoSaque =
-  | { ok: true }
-  | { ok: false; motivo: 'abaixo_do_minimo' | 'acima_do_disponivel' }
+  { ok: true } | { ok: false; motivo: 'abaixo_do_minimo' | 'acima_do_disponivel' }
 
 export function validarSaque(params: { valor: Centavos; disponivel: Centavos }): ResultadoSaque {
   if (params.valor < SAQUE_MINIMO) return { ok: false, motivo: 'abaixo_do_minimo' }
