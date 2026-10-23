@@ -1,0 +1,173 @@
+.pagina {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px 16px 80px;
+  display: grid;
+  gap: 24px;
+}
+
+.cabecalho h1 {
+  font-size: 40px;
+  letter-spacing: -0.02em;
+  margin: 8px 0;
+}
+
+.cabecalho p {
+  color: var(--texto-suave);
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
+.cabecalho code {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.9em;
+}
+
+.selo {
+  display: inline-block;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--marca);
+  background: var(--marca-suave);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+}
+
+.cartao h2 {
+  font-size: 20px;
+}
+
+.ajuda {
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.campos label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.campos input[type='number'],
+.campos select {
+  font: inherit;
+  font-weight: 400;
+  color: var(--texto);
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.campos input[type='range'] {
+  accent-color: var(--marca);
+}
+
+.resultado {
+  display: grid;
+  border-top: 1px solid var(--borda);
+}
+
+.resultado div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--borda);
+}
+
+.resultado dt {
+  color: var(--texto-suave);
+}
+
+.resultado dd {
+  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.resultado .destaque dt,
+.resultado .destaque dd {
+  color: var(--texto);
+  font-weight: 600;
+}
+
+.negativo {
+  color: var(--perigo);
+}
+
+.servicos {
+  border: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.servicos legend {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.opcao input {
+  accent-color: var(--marca);
+  width: 18px;
+  height: 18px;
+}
+
+.opcao span {
+  margin-left: auto;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.resumo {
+  font-weight: 500;
+}
+
+.vazio {
+  color: var(--texto-suave);
+}
+
+.horarios {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.horarios li {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 14px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
