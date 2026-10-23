@@ -1,6 +1,7 @@
 import { Link, router } from 'expo-router'
 import { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
+import logo from '../../../assets/logo.png'
 import { Botao, Campo, Mensagem, Tela, Texto, Titulo } from '../../componentes/ui'
 import { registrarParaPush } from '../../lib/push'
 import { supabase } from '../../lib/supabase'
@@ -37,7 +38,7 @@ export default function Entrar() {
   return (
     <Tela>
       <View style={estilos.marca}>
-        <Text style={[estilos.logo, { color: c.marca }]}>✂</Text>
+        <Image source={logo} style={estilos.logo} accessibilityIgnoresInvertColors />
         <Titulo>Navalha</Titulo>
         <Texto suave>Agende, pague e acompanhe seus horários.</Texto>
       </View>
@@ -77,7 +78,7 @@ export default function Entrar() {
 
 const estilos = StyleSheet.create({
   marca: { alignItems: 'center', gap: 4, marginTop: 32, marginBottom: 16 },
-  logo: { fontSize: 40 },
+  logo: { width: 48, height: 33, marginBottom: 8 },
   link: {
     textAlign: 'center',
     fontWeight: '600',

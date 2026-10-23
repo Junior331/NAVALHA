@@ -1,61 +1,86 @@
-/* Tokens do Navalha (Figma: superfícies claras, tinta quase-preta, laranja da marca nos destaques). */
+/* Tokens do Navalha (Figma Admin): fundo branco, lateral cinza-claro, tinta ardósia e o laranja
+   da marca (#F27508) nos destaques. Cores de texto com contraste AA; as cores "-cor" são das marcas
+   (barras, pontos, gráficos) e nunca vão em texto pequeno. */
 :root {
-  --fundo: #f6f5f3;
+  --fonte: var(--fonte-inter), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fonte-mono: var(--fonte-dm-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  --fundo: #ffffff;
   --superficie: #ffffff;
-  --superficie-2: #faf9f7;
-  --texto: #16130f;
-  --texto-2: #4a453e;
-  --texto-suave: #6b665f;
-  --borda: #e6e2dc;
-  --borda-forte: #cfc9c0;
-  --primario: #16130f;
+  --superficie-2: #fafafa;
+  --superficie-3: #f1f2f4;
+  --texto: #3f4655;
+  --texto-forte: #1b1f27;
+  --texto-2: #586072;
+  --texto-suave: #656d7e;
+  --texto-apagado: #a7acb8;
+  --borda: #ecedef;
+  --borda-forte: #dfe1e6;
+  --primario: #1b1f27;
   --primario-texto: #ffffff;
-  --marca: #e8711a;
-  --marca-suave: #fdeedf;
-  --marca-texto: #a64d0c;
-  --sucesso: #1f7a45;
-  --sucesso-suave: #e3f3e9;
-  --alerta: #8a5a00;
-  --alerta-suave: #fbf0d9;
-  --perigo: #b42318;
-  --perigo-suave: #fde8e6;
+  --marca: #f27508;
+  --marca-media: #facfa9;
+  --marca-suave: #fff1e5;
+  --marca-hoje: #fffaf6;
+  --marca-texto: #c05100;
+  --sucesso: #1e7a47;
+  --sucesso-cor: #33a666;
+  --sucesso-suave: #e6f4ec;
+  --alerta: #a5470a;
+  --alerta-cor: #f59e0b;
+  --alerta-suave: #fdefd8;
+  --perigo: #c42b1f;
+  --perigo-cor: #d92d20;
+  --perigo-suave: #fceceb;
+  --neutro-cor: #727b8e;
+  --neutro-suave: #f1f2f4;
   --info: #1d5bbf;
   --info-suave: #e5edfb;
   --foco: #1d5bbf;
-  --dado: #e8711a;
-  --grade: #ece8e2;
-  --raio: 12px;
+  --dado: #f27508;
+  --grade: #f1f2f4;
+  --trilho: #eeeff1;
+  --raio: 14px;
+  --raio-m: 10px;
   --raio-p: 8px;
-  --sombra: 0 1px 2px rgb(22 19 15 / 6%), 0 8px 24px rgb(22 19 15 / 6%);
+  --sombra: 0 1px 2px rgb(27 31 39 / 4%), 0 12px 32px rgb(27 31 39 / 8%);
+  --sombra-leve: 0 1px 2px rgb(27 31 39 / 5%);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fundo: #0f0e0c;
-    --superficie: #1a1815;
-    --superficie-2: #211f1b;
-    --texto: #f2efe9;
-    --texto-2: #cfc9c0;
-    --texto-suave: #a39d94;
-    --borda: #2e2a25;
-    --borda-forte: #4a453e;
-    --primario: #f2efe9;
-    --primario-texto: #16130f;
-    --marca-suave: #3a2410;
-    --marca-texto: #f3a566;
+    --fundo: #111318;
+    --superficie: #171a20;
+    --superficie-2: #14161b;
+    --superficie-3: #22262e;
+    --texto: #e6e8ec;
+    --texto-forte: #f6f7f9;
+    --texto-2: #c3c7cf;
+    --texto-suave: #a3a9b5;
+    --texto-apagado: #6c7280;
+    --borda: #262a32;
+    --borda-forte: #353a44;
+    --primario: #f6f7f9;
+    --primario-texto: #111318;
+    --marca-media: #7a3f10;
+    --marca-suave: #2c1d10;
+    --marca-hoje: #1c1712;
+    --marca-texto: #ff9a4d;
     --sucesso: #5fc48a;
     --sucesso-suave: #12301f;
-    --alerta: #e8b34a;
-    --alerta-suave: #33280f;
+    --alerta: #f2b552;
+    --alerta-suave: #33270f;
     --perigo: #f28b82;
     --perigo-suave: #3a1714;
+    --neutro-cor: #8b93a3;
+    --neutro-suave: #22262e;
     --info: #8ab4f8;
     --info-suave: #142640;
     --foco: #8ab4f8;
-    --dado: #e06c1c;
-    --grade: #2a2722;
-    --sombra: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 30%);
+    --grade: #22262e;
+    --trilho: #262a32;
+    --sombra: 0 1px 2px rgb(0 0 0 / 30%), 0 12px 32px rgb(0 0 0 / 35%);
+    --sombra-leve: 0 1px 2px rgb(0 0 0 / 30%);
     color-scheme: dark;
   }
 }
@@ -74,7 +99,7 @@ body {
 body {
   color: var(--texto);
   background: var(--fundo);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--fonte);
   font-size: 15px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
@@ -98,11 +123,11 @@ textarea {
 }
 
 .mono {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--fonte-mono);
 }
 
 .rotulo {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--fonte-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;

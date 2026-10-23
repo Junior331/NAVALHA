@@ -2,13 +2,13 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { diaUtilDaqui } from '../dias'
 
-// Admin 02d–02j: agendar pelo balcão, abrir o evento, remarcar e cancelar.
+// Admin 02b–02j: agendar pelo balcão, abrir o resumo do evento, remarcar e cancelar.
 test('agenda pelo balcão, remarca e cancela, liberando o horário', async ({ page }) => {
   const dia = diaUtilDaqui(15)
   const cliente = `Cliente E2E ${Date.now()}`
   await page.goto(`/painel/agenda?data=${dia}`)
 
-  await page.getByRole('button', { name: 'Novo agendamento +' }).click()
+  await page.getByRole('button', { name: 'Novo agendamento', exact: true }).click()
   const dialogo = page.getByRole('dialog')
   await dialogo.getByRole('button', { name: 'Cadastrar cliente novo' }).click()
   await dialogo.getByLabel('Nome do cliente').fill(cliente)
@@ -53,8 +53,13 @@ test('agenda pelo balcão, remarca e cancela, liberando o horário', async ({ pa
   await expect(dialogo.getByText('Agendamento cancelado')).toBeVisible()
   await dialogo.getByText('Fechar', { exact: true }).click()
 
-  // Cancelado sai da grade e vai para a lista de cancelados.
-  await expect(page.getByRole('region', { name: /Cancelados/ })).toContainText(cliente)
+  // Cancelado fica na grade, riscado, e some quando o filtro esconde os cancelados.
+  await expect(evento).toHaveAttribute('aria-label', /Cancelado/)
+  await page.getByRole('button', { name: /^Filtros/ }).click()
+  await page.getByRole('checkbox', { name: /^Cancelados/ }).uncheck()
+  await page.getByRole('button', { name: 'Aplicar filtros' }).click()
+  await expect(page.getByRole('button', { name: /^Filtros 1 desmarcado/ })).toBeVisible()
+  await expect(evento).toHaveCount(0)
 })
 
 test('a agenda não tem problemas de acessibilidade detectáveis', async ({ page }) => {

@@ -1,7 +1,7 @@
 # Navalha — Execução do roadmap
 
 Registro do que já foi feito em cada fase do `docs/roadmap.md`, do que ficou de fora e por quê.
-Atualizado em 23/10/2026, com as fases 0 a 8 implementadas.
+Atualizado em 23/10/2026, com as fases 0 a 8 implementadas e o painel no visual das telas de referência.
 
 ## Feito
 
@@ -36,7 +36,10 @@ Atualizado em 23/10/2026, com as fases 0 a 8 implementadas.
 - **Combos:** reconhecidos pelo nome ("Corte + Barba"), porque o cadastro de serviços não guarda os itens de cada combo.
 - **Busca do app:** só barbearias que ativaram os recebimentos e escolheram aparecer nas buscas.
 - **cacheComponents do Next desligado:** painel e app dependem da sessão em toda tela.
-- **Botão principal:** preenchido em quase-preto (contraste AA); o laranja da marca fica para destaques e gráficos (#E8711A no claro, #E06C1C no escuro, validados pelo script da skill dataviz).
+- **Visual do painel (telas de referência de 23/10):** Inter no texto e DM Mono nos números, tinta ardósia (#3F4655), fundo branco com lateral #FAFAFA e o laranja da marca #F27508. A logo (três lâminas, 100/50/20% de opacidade) está no painel, nas telas de acesso, na página pública, no favicon e nos ícones do app. Textos laranja e o círculo do "hoje" usam #C05100 para passar no contraste AA; o laranja vivo fica nas barras, pontos e gráficos.
+- **Agenda:** o "Pendentes" das referências virou "Reservados" (cartão aguardando a pré-autorização), porque não existe status Pendente; "Solicitações" continua fora do menu. Cancelados aparecem na grade, riscados, e saem pelos Filtros; no-show tem filtro próprio. Na semana, só os dias em que a barbearia abre.
+- **Menu:** Clientes (nova tela, com busca) e Financeiro com Receitas, Repasses (saques e lotes da taxa) e Relatórios. Os números ao lado do menu são agendamentos de hoje, equipe ativa e serviços ativos. Perfil da barbearia fica embaixo, no lugar de Solicitações, e no menu da conta.
+- **Botão principal:** preenchido em quase-preto (contraste AA) nos formulários; as ações do cabeçalho seguem as referências (claras, com borda e ícone).
 - **Cadastro do dono na web:** passo extra de verificação do e-mail por código (não está no Figma Cadastro 01–05).
 
 ## Revisão de segurança (fase 8)

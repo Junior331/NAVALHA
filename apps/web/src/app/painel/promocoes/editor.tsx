@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { instanteLocal, partesLocais, type Desconto } from '@navalha/core'
@@ -156,7 +157,10 @@ export function EditorDePromocao({
           Editar
         </Botao>
       ) : (
-        <Botao onClick={() => setAberto(true)}>Nova promoção +</Botao>
+        <Botao variante="secundario" onClick={() => setAberto(true)}>
+          Nova promoção
+          <Plus size={18} strokeWidth={1.75} aria-hidden />
+        </Botao>
       )}
       {aberto ? (
         <Modal

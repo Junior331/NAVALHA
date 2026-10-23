@@ -6,14 +6,13 @@ import {
   type StatusAgendamento,
 } from '@navalha/core'
 import { diaDaSemana, semanaDe, somarDias } from '@/lib/agenda'
-import { dataCurta, dataLonga } from '@/lib/formato'
 import { barbeariaDoPainel } from '@/lib/painel'
-import s from '../painel.module.css'
 import { GradeDaAgenda } from './grade'
 import { NovoAgendamento } from './novo'
 import type { EventoDaAgenda } from './tipos'
 
-// Figma Admin 02 (semana) e 02c (dia). ?data=YYYY-MM-DD&visao=dia|semana&barbeiro=id
+// Figma Admin 02 (semana) e 02c (dia).
+// ?data=YYYY-MM-DD&visao=dia|semana&status=grupos&barbeiro=ids&evento=id&novo=1
 export default async function Agenda({ searchParams }: PageProps<'/painel/agenda'>) {
   const parametros = await searchParams
   const { supabase, barbearia, papel } = await barbeariaDoPainel()
@@ -24,11 +23,12 @@ export default async function Agenda({ searchParams }: PageProps<'/painel/agenda
     typeof parametros.data === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(parametros.data)
       ? parametros.data
       : hoje
-  const visao = parametros.visao === 'semana' ? 'semana' : 'dia'
-  const filtro = typeof parametros.barbeiro === 'string' ? parametros.barbeiro : null
-  const dias = visao === 'semana' ? semanaDe(pedida) : [pedida]
-  const primeiro = dias[0] ?? pedida
-  const ultimo = dias[dias.length - 1] ?? pedida
+  const visao = parametros.visao === 'dia' ? 'dia' : 'semana'
+  const lista = (valor: string | string[] | undefined) =>
+    typeof valor === 'string' && valor ? valor.split(',') : null
+  const semana = visao === 'semana' ? semanaDe(pedida) : [pedida]
+  const primeiro = semana[0] ?? pedida
+  const ultimo = semana[semana.length - 1] ?? pedida
 
   const [membros, perfis, horarios, agendamentos, servicos] = await Promise.all([
     supabase
@@ -48,7 +48,7 @@ export default async function Agenda({ searchParams }: PageProps<'/painel/agenda
     supabase
       .from('agendamentos')
       .select(
-        'id, codigo, inicio, fim, status, barbeiro_id, valor_pago_centavos, pago_no_balcao, retencao_pct, tolerancia_ate, observacoes, clientes(nome, celular, usuario_id), agendamento_servicos(nome), pagamentos(meio, status, cartao_final, capturar_em)',
+        'id, codigo, inicio, fim, status, barbeiro_id, valor_pago_centavos, pago_no_balcao, retencao_pct, tolerancia_ate, observacoes, clientes(nome, celular, usuario_id), agendamento_servicos(nome, preco_centavos), pagamentos(meio, status, cartao_final, capturar_em)',
       )
       .eq('barbearia_id', barbearia.id)
       .gte('inicio', instanteLocal(primeiro, 0, fuso).toISOString())
@@ -84,6 +84,7 @@ export default async function Agenda({ searchParams }: PageProps<'/painel/agenda
         temApp: Boolean(a.clientes?.usuario_id),
       },
       servicos: a.agendamento_servicos.map((x) => x.nome),
+      valorCentavos: a.agendamento_servicos.reduce((t, x) => t + x.preco_centavos, 0),
       valorPagoCentavos: a.valor_pago_centavos,
       pagoNoBalcao: a.pago_no_balcao,
       retencaoPct: a.retencao_pct,
@@ -100,6 +101,13 @@ export default async function Agenda({ searchParams }: PageProps<'/painel/agenda
     }
   })
 
+  // Na semana, só os dias em que a barbearia abre (ou que têm encaixe do balcão), como no Figma.
+  const abertos = new Set((horarios.data ?? []).map((h) => h.dia_semana))
+  const comEventos = new Set(eventos.map((e) => partesLocais(new Date(e.inicio), fuso).data))
+  const dias =
+    visao === 'dia'
+      ? semana
+      : semana.filter((d) => abertos.has(diaDaSemana(d)) || comEventos.has(d) || d === pedida)
   const diasDaSemana = new Set(dias.map(diaDaSemana))
   const expediente = (horarios.data ?? [])
     .filter((h) => diasDaSemana.has(h.dia_semana))
@@ -120,12 +128,6 @@ export default async function Agenda({ searchParams }: PageProps<'/painel/agenda
     }
   })
 
-  const ativos = eventos.filter(
-    (e) =>
-      ['reservado', 'confirmado', 'em_atendimento', 'concluido'].includes(e.status) &&
-      (!filtro || e.barbeiroId === filtro),
-  ).length
-  const meioDia = (data: string) => instanteLocal(data, 12 * 60, fuso)
   const contexto = {
     barbeariaId: barbearia.id,
     barbeariaNome: barbearia.nome,
@@ -136,34 +138,25 @@ export default async function Agenda({ searchParams }: PageProps<'/painel/agenda
   }
 
   return (
-    <>
-      <div className={s.cabecalhoPagina}>
-        <div>
-          <h1>Agenda</h1>
-          <p>
-            {visao === 'dia'
-              ? dataLonga(meioDia(pedida), fuso)
-              : `Semana de ${dataCurta(meioDia(primeiro), fuso)} a ${dataCurta(meioDia(ultimo), fuso)}`}
-            {' · '}
-            {ativos} agendamento{ativos === 1 ? '' : 's'}
-          </p>
-        </div>
+    <GradeDaAgenda
+      contexto={contexto}
+      visao={visao}
+      data={pedida}
+      dias={dias}
+      gruposVisiveis={lista(parametros.status)}
+      barbeirosVisiveis={lista(parametros.barbeiro)}
+      eventoInicial={typeof parametros.evento === 'string' ? parametros.evento : null}
+      eventos={eventos}
+      expediente={expediente}
+      verPagamento={papel === 'dono'}
+      novo={
         <NovoAgendamento
           contexto={contexto}
           servicos={doBalcao}
           dataInicial={pedida < hoje ? hoje : pedida}
+          abrirAoCarregar={parametros.novo === '1'}
         />
-      </div>
-      <GradeDaAgenda
-        contexto={contexto}
-        visao={visao}
-        data={pedida}
-        dias={dias}
-        filtro={filtro}
-        eventos={eventos}
-        expediente={expediente}
-        verPagamento={papel === 'dono'}
-      />
-    </>
+      }
+    />
   )
 }

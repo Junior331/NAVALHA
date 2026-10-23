@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { Logo } from '@/componentes/logo'
 import s from './acesso.module.css'
 
 // Layout das telas de acesso (Figma Acessos: Login, Senha, Cadastro).
@@ -8,9 +9,7 @@ export default function LayoutDeAcesso({ children }: { children: ReactNode }) {
     <div className={s.pagina}>
       <aside className={s.marca}>
         <Link href="/" className={s.logo}>
-          <span className={s.icone} aria-hidden>
-            ✂
-          </span>
+          <Logo tamanho={32} />
           Navalha
         </Link>
         <div>
@@ -20,9 +19,7 @@ export default function LayoutDeAcesso({ children }: { children: ReactNode }) {
             barbearia e para o cliente.
           </p>
         </div>
-        <p className="rotulo" style={{ color: '#6b665f' }}>
-          acesso seguro por código
-        </p>
+        <p className="rotulo">acesso seguro por código</p>
       </aside>
       <main className={s.conteudo}>{children}</main>
     </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Logo } from '@/componentes/logo'
 import { linkDoWhatsapp } from '@/lib/agenda'
 import { barbeariaPublica, situacaoDoHorario } from './dados'
 import { EscolhaDeServicos } from './servicos'
@@ -47,7 +48,8 @@ export default async function PaginaPublica({ params }: PageProps<'/[slug]'>) {
         style={pagina.capaUrl ? { backgroundImage: `url(${pagina.capaUrl})` } : undefined}
       >
         <Link href="/" className={v.marca}>
-          ✂ Navalha
+          <Logo tamanho={18} />
+          Navalha
         </Link>
       </header>
 

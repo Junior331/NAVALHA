@@ -19,16 +19,6 @@
   font-size: 18px;
 }
 
-.icone {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--marca);
-  color: #16130f;
-  display: grid;
-  place-items: center;
-}
-
 .links {
   display: flex;
   align-items: center;

@@ -25,7 +25,7 @@
 }
 
 .codigo {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--fonte-mono);
   font-size: 12px;
   color: var(--marca-texto);
 }

@@ -1,17 +1,19 @@
 'use client'
 
+import { CalendarDays, Scissors, User, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { partesLocais, type Liquidacao } from '@navalha/core'
-import { Botao, Etiqueta, Mensagem, Modal, Selecao } from '@/componentes/ui'
+import { Avatar, Botao, Etiqueta, Mensagem, Modal, Selecao } from '@/componentes/ui'
 import { linkDoWhatsapp } from '@/lib/agenda'
-import { dataLonga, hora, reais } from '@/lib/formato'
+import { dataLonga, diaPorExtenso, hora, minutosEmTexto, reais } from '@/lib/formato'
 import { STATUS } from '@/lib/status'
 import { api, ErroDaApi } from '@/lib/supabase'
 import s from './agenda.module.css'
-import type { ContextoDaAgenda, EventoDaAgenda } from './tipos'
+import type { ContextoDaAgenda, EventoDaAgenda, PosicaoDoResumo } from './tipos'
 
-// Figma Admin 02b (evento), 02i (remarcar), 02j (cancelar) e a ação nova de no-show.
+// Figma Admin 02b (resumo ao lado do cartão e detalhes), 02i (remarcar), 02j (cancelar) e a ação
+// nova de no-show.
 
 interface PreviaCancelamento {
   evento: string
@@ -23,6 +25,7 @@ interface Horarios {
 }
 
 type Tela =
+  | { tipo: 'resumo' }
   | { tipo: 'detalhe' }
   | { tipo: 'remarcar' }
   | { tipo: 'cancelar'; previa: Liquidacao | null }
@@ -71,18 +74,24 @@ function linhaDoPagamento(e: EventoDaAgenda, fuso: string): string | null {
 
 export function DetalheDoEvento({
   evento,
+  posicao,
   contexto,
   verPagamento,
   aoFechar,
 }: {
   evento: EventoDaAgenda
+  /** Com posição, abre primeiro o resumo ao lado do cartão; sem, direto nos detalhes. */
+  posicao: PosicaoDoResumo | null
   contexto: ContextoDaAgenda
   verPagamento: boolean
   aoFechar: () => void
 }) {
   const router = useRouter()
   const { fuso } = contexto
-  const [tela, setTela] = useState<Tela>({ tipo: 'detalhe' })
+  const [tela, setTela] = useState<Tela>({ tipo: posicao ? 'resumo' : 'detalhe' })
+  const resumo = useRef<HTMLDivElement>(null)
+  const botaoFechar = useRef<HTMLButtonElement>(null)
+  const idResumo = useId()
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [mudou, setMudou] = useState(false)
@@ -233,6 +242,29 @@ export function DetalheDoEvento({
     aoFechar()
   }
 
+  // O resumo fecha com Esc e com clique fora dele (como os outros flutuantes do painel).
+  const noResumo = tela.tipo === 'resumo'
+  useEffect(() => {
+    if (!noResumo) return
+    const fora = (e: PointerEvent) => {
+      if (resumo.current && !resumo.current.contains(e.target as Node)) aoFechar()
+    }
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') aoFechar()
+    }
+    document.addEventListener('pointerdown', fora)
+    document.addEventListener('keydown', tecla)
+    return () => {
+      document.removeEventListener('pointerdown', fora)
+      document.removeEventListener('keydown', tecla)
+    }
+  }, [noResumo, aoFechar])
+
+  // O foco vai para o resumo que acabou de abrir (e volta ao cartão quando ele fecha).
+  useEffect(() => {
+    if (noResumo) botaoFechar.current?.focus()
+  }, [noResumo])
+
   const whatsappGeral = linkDoWhatsapp(
     evento.cliente.celular,
     `Olá, ${primeiroNome}! Aqui é da ${contexto.barbeariaNome}, sobre o seu horário de ${quando}.`,
@@ -244,11 +276,105 @@ export function DetalheDoEvento({
     </Botao>
   )
 
+  if (tela.tipo === 'resumo' && posicao) {
+    const duracao = Math.round(
+      (new Date(evento.fim).getTime() - new Date(evento.inicio).getTime()) / 60_000,
+    )
+    const status = STATUS[evento.status]
+    return (
+      <div
+        ref={resumo}
+        className={s.resumoEvento}
+        role="dialog"
+        aria-labelledby={idResumo}
+        style={posicao}
+      >
+        <div className={s.resumoTopo}>
+          <Etiqueta tom={status.tom} ponto>
+            {status.rotulo}
+          </Etiqueta>
+          <button
+            ref={botaoFechar}
+            type="button"
+            className={s.fecharResumo}
+            onClick={aoFechar}
+            aria-label="Fechar"
+          >
+            <X size={16} aria-hidden />
+          </button>
+        </div>
+        <div className={s.resumoCliente}>
+          <Avatar nome={evento.cliente.nome} tamanho={40} />
+          <div>
+            <h2
+              id={idResumo}
+              data-cancelado={evento.status.startsWith('cancelado') ? 'sim' : undefined}
+            >
+              {evento.cliente.nome}
+            </h2>
+            <p>{evento.cliente.celular ?? 'Sem celular'}</p>
+          </div>
+        </div>
+        <ul className={s.resumoLinhas}>
+          <li>
+            <CalendarDays size={16} strokeWidth={1.75} aria-hidden />
+            <span>
+              <strong>{diaPorExtenso(evento.inicio, fuso)}</strong>
+              <span>
+                {hora(evento.inicio, fuso)} – {hora(evento.fim, fuso)} · {minutosEmTexto(duracao)}
+              </span>
+            </span>
+          </li>
+          <li>
+            <Scissors size={16} strokeWidth={1.75} aria-hidden />
+            <span>
+              <strong>{evento.servicos.join(' + ')}</strong>
+              <span>{reais(evento.valorCentavos)}</span>
+            </span>
+          </li>
+          <li>
+            <User size={16} strokeWidth={1.75} aria-hidden />
+            <span>
+              <strong>{nomeDoBarbeiro}</strong>
+              <span>Barbeiro</span>
+            </span>
+          </li>
+        </ul>
+        <div className={s.resumoAcoes} data-unica={ativo ? undefined : 'sim'}>
+          <Botao variante="secundario" onClick={() => setTela({ tipo: 'detalhe' })}>
+            Ver detalhes
+          </Botao>
+          {ativo ? (
+            <Botao variante="secundario" onClick={abrirRemarcar}>
+              Remarcar
+            </Botao>
+          ) : null}
+          {podeIniciar || podeConcluir ? (
+            <Botao
+              largo
+              className={s.acaoLarga}
+              onClick={() => mudarAtendimento(podeIniciar ? 'iniciar' : 'concluir')}
+              disabled={enviando}
+            >
+              {podeIniciar ? 'Iniciar atendimento' : 'Concluir atendimento'}
+            </Botao>
+          ) : null}
+          {ativo ? (
+            <Botao variante="perigoContorno" largo className={s.acaoLarga} onClick={abrirCancelar}>
+              Cancelar agendamento
+            </Botao>
+          ) : null}
+        </div>
+        {erro ? <Mensagem tipo="erro">{erro}</Mensagem> : null}
+      </div>
+    )
+  }
+
   let titulo = evento.cliente.nome
   let corpo: ReactNode
   let rodape: ReactNode
 
-  if (tela.tipo === 'detalhe') {
+  if (tela.tipo === 'detalhe' || tela.tipo === 'resumo') {
     corpo = (
       <dl className={s.detalhes}>
         <div>
@@ -515,7 +641,9 @@ export function DetalheDoEvento({
       aoFechar={fechar}
       titulo={titulo}
       descricao={
-        tela.tipo === 'detalhe' ? `${evento.codigo} · ${STATUS[evento.status].rotulo}` : undefined
+        tela.tipo === 'detalhe' || tela.tipo === 'resumo'
+          ? `${evento.codigo} · ${STATUS[evento.status].rotulo}`
+          : undefined
       }
       rodape={rodape}
     >

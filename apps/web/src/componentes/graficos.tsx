@@ -1,43 +1,54 @@
 'use client'
 
 import { useState } from 'react'
-import { reais, reaisCompacto } from '@/lib/formato'
+import { reais } from '@/lib/formato'
+import { Avatar } from './ui'
 import s from './graficos.module.css'
 
-// Gráficos de uma série (skill dataviz): barras ≤ 24px com ponta arredondada de 4px apoiadas na
-// base, grade de 1px discreta, tooltip por barra no hover e no foco, e tabela acessível com os
-// mesmos valores (o tooltip nunca é o único caminho até o número).
+// Gráficos de uma série (skill dataviz): barras finas com ponta arredondada apoiadas na base,
+// grade de 1px discreta, eixos em mono, tooltip por barra no hover e no foco, e tabela para leitor
+// de tela com os mesmos valores (o tooltip nunca é o único caminho até o número).
 
 export type Formato = 'reais' | 'percentual' | 'numero'
 
 // Formatação dentro do componente: Server Components não podem passar funções para cá.
 const FORMATOS: Record<Formato, { valor: (v: number) => string; eixo: (v: number) => string }> = {
-  reais: { valor: reais, eixo: reaisCompacto },
+  reais: { valor: reais, eixo: reaisNoEixo },
   percentual: { valor: (v) => `${v}%`, eixo: (v) => `${v}%` },
   numero: { valor: (v) => v.toLocaleString('pt-BR'), eixo: (v) => v.toLocaleString('pt-BR') },
 }
+
+/** base: cor clara da marca; destaque: laranja da marca; atual: tinta (o dia de hoje, parcial). */
+export type TomDaBarra = 'base' | 'destaque' | 'atual'
 
 export interface Ponto {
   rotulo: string
   valor: number
   detalhe?: string
+  tom?: TomDaBarra
 }
 
 export function GraficoDeColunas({
   titulo,
   pontos,
   formato,
+  legenda,
+  rotuloACada,
 }: {
   titulo: string
   pontos: Ponto[]
   formato: Formato
+  /** Uma entrada por tom usado (a cor nunca identifica sozinha). */
+  legenda?: { tom: TomDaBarra; rotulo: string }[]
+  /** Rótulo do eixo X a cada N pontos (e sempre no último). */
+  rotuloACada?: number
 }) {
   const formatar = FORMATOS[formato].valor
   const formatarEixo = FORMATOS[formato].eixo
   const [foco, setFoco] = useState<number | null>(null)
   const largura = 720
-  const altura = 200
-  const margem = { esquerda: 48, direita: 8, topo: 8, base: 24 }
+  const altura = 240
+  const margem = { esquerda: 44, direita: 4, topo: 10, base: 30 }
   const area = {
     l: largura - margem.esquerda - margem.direita,
     a: altura - margem.topo - margem.base,
@@ -46,7 +57,8 @@ export function GraficoDeColunas({
   const passoEixo = escalaLimpa(maximo)
   const topoEixo = Math.ceil(maximo / passoEixo) * passoEixo
   const faixa = area.l / Math.max(1, pontos.length)
-  const espessura = Math.min(24, Math.max(4, faixa - 2))
+  const espessura = Math.min(24, Math.max(3, faixa * 0.78))
+  const aCada = rotuloACada ?? Math.ceil(pontos.length / 6)
   const y = (v: number) => margem.topo + area.a - (v / topoEixo) * area.a
   const marcas = Array.from(
     { length: Math.round(topoEixo / passoEixo) + 1 },
@@ -57,7 +69,7 @@ export function GraficoDeColunas({
   return (
     <figure className={s.figura}>
       <div className={s.area}>
-        <svg viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label={titulo} className={s.svg}>
+        <svg viewBox={`0 0 ${largura} ${altura}`} role="group" aria-label={titulo} className={s.svg}>
           {marcas.map((m) => (
             <g key={m}>
               <line
@@ -67,15 +79,15 @@ export function GraficoDeColunas({
                 y2={y(m)}
                 className={s.grade}
               />
-              <text x={margem.esquerda - 8} y={y(m) + 4} className={s.eixo} textAnchor="end">
-                {formatarEixo(m)}
+              <text x={0} y={y(m) + 4} className={s.eixo}>
+                {m === topoEixo && formato === 'reais' ? `R$ ${formatarEixo(m)}` : formatarEixo(m)}
               </text>
             </g>
           ))}
           {pontos.map((p, i) => {
             const x = margem.esquerda + i * faixa + (faixa - espessura) / 2
             const h = Math.max(0, y(0) - y(p.valor))
-            const raio = Math.min(4, h / 2, espessura / 2)
+            const raio = Math.min(3, h / 2, espessura / 2)
             return (
               <g key={p.rotulo}>
                 {/* Área de toque maior que a barra: a faixa inteira. */}
@@ -96,7 +108,9 @@ export function GraficoDeColunas({
                 {h > 0 ? (
                   <path
                     d={colunaArredondada(x, y(0), espessura, h, raio)}
-                    className={foco === i ? `${s.barra} ${s.barraAtiva}` : s.barra}
+                    className={[s.barra, s[p.tom ?? 'destaque'], foco === i && s.barraAtiva]
+                      .filter(Boolean)
+                      .join(' ')}
                     pointerEvents="none"
                   />
                 ) : null}
@@ -104,11 +118,12 @@ export function GraficoDeColunas({
             )
           })}
           {pontos.map((p, i) =>
-            i % Math.ceil(pontos.length / 6) === 0 || i === pontos.length - 1 ? (
+            // A cada N pontos e no último; o vizinho colado no último sai para não sobrepor.
+            (i % aCada === 0 && pontos.length - 1 - i >= aCada / 2) || i === pontos.length - 1 ? (
               <text
                 key={`r-${p.rotulo}`}
                 x={margem.esquerda + i * faixa + faixa / 2}
-                y={altura - 6}
+                y={altura - 8}
                 className={s.eixo}
                 textAnchor="middle"
               >
@@ -128,10 +143,19 @@ export function GraficoDeColunas({
           </div>
         ) : null}
       </div>
-      <details className={s.tabela}>
-        <summary>Ver em tabela</summary>
+      {legenda ? (
+        <ul className={s.legenda}>
+          {legenda.map((l) => (
+            <li key={l.tom}>
+              <span className={`${s.amostra} ${s[l.tom]}`} aria-hidden="true" />
+              {l.rotulo}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="so-leitor">
         <table>
-          <caption className="so-leitor">{titulo}</caption>
+          <caption>{titulo}</caption>
           <tbody>
             {pontos.map((p) => (
               <tr key={p.rotulo}>
@@ -141,7 +165,7 @@ export function GraficoDeColunas({
             ))}
           </tbody>
         </table>
-      </details>
+      </div>
     </figure>
   )
 }
@@ -151,10 +175,13 @@ export function BarrasHorizontais({
   itens,
   maximo,
   formato,
+  comAvatar,
 }: {
   itens: Ponto[]
   maximo?: number
   formato: Formato
+  /** Iniciais antes do nome (equipe). */
+  comAvatar?: boolean
 }) {
   const formatar = FORMATOS[formato].valor
   const topo = maximo ?? Math.max(1, ...itens.map((i) => i.valor))
@@ -162,7 +189,10 @@ export function BarrasHorizontais({
     <ul className={s.horizontais}>
       {itens.map((item) => (
         <li key={item.rotulo}>
-          <span className={s.nome}>{item.rotulo}</span>
+          <span className={s.nome}>
+            {comAvatar ? <Avatar nome={item.rotulo} tamanho={28} /> : null}
+            <span className={s.nomeTexto}>{item.rotulo}</span>
+          </span>
           <span className={s.trilho} aria-hidden>
             <span
               className={s.preenchido}
@@ -201,4 +231,12 @@ function escalaLimpa(maximo: number): number {
   const fracao = bruto / potencia
   const limpo = fracao <= 1 ? 1 : fracao <= 2 ? 2 : fracao <= 5 ? 5 : 10
   return limpo * potencia
+}
+
+/** Eixo em reais sem o símbolo: 0, 250, 750, 1k, 1,5k (o "R$" vai só no rótulo do topo). */
+function reaisNoEixo(centavos: number): string {
+  const valor = centavos / 100
+  return Math.abs(valor) >= 1000
+    ? `${(valor / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}k`
+    : valor.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
 }

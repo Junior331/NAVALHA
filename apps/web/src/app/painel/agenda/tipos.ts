@@ -12,6 +12,8 @@ export interface EventoDaAgenda {
   /** temApp: o cliente tem conta no app e recebe os avisos por lá (o do balcão pode não ter). */
   cliente: { nome: string; celular: string | null; temApp: boolean }
   servicos: string[]
+  /** Preço dos serviços no momento do agendamento. */
+  valorCentavos: number
   valorPagoCentavos: number
   pagoNoBalcao: boolean
   retencaoPct: number
@@ -45,4 +47,11 @@ export interface ContextoDaAgenda {
   hoje: string
   agora: string
   barbeiros: BarbeiroDaAgenda[]
+}
+
+/** Onde abrir o resumo do evento: ao lado do cartão clicado, sem sair da tela. */
+export interface PosicaoDoResumo {
+  left: number
+  top?: number
+  bottom?: number
 }

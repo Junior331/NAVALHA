@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from 'lucide-react'
 import { precoDoServico } from '@navalha/core'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
@@ -124,7 +125,12 @@ export function TabelaDeServicos({
               Com desconto
             </button>
           </div>
-          {podeEditar ? <Botao onClick={() => setEditando('novo')}>Novo serviço +</Botao> : null}
+          {podeEditar ? (
+            <Botao variante="secundario" onClick={() => setEditando('novo')}>
+              Novo serviço
+              <Plus size={18} strokeWidth={1.75} aria-hidden />
+            </Botao>
+          ) : null}
         </div>
         {erro ? (
           <div style={{ padding: 16 }}>

@@ -17,6 +17,7 @@ test('saca do disponível respeitando o mínimo de R$ 50', async ({ page }) => {
   await dialogo.getByRole('button', { name: 'Sacar por Pix' }).click()
   await expect(dialogo.getByText(/R\$ 50,00 a caminho da chave Pix/)).toBeVisible()
   await dialogo.getByText('Fechar', { exact: true }).click()
+  await page.goto('/painel/financeiro/repasses')
   await expect(page.getByRole('region', { name: 'Saques' })).toContainText('R$ 50,00')
 })
 

@@ -19,17 +19,17 @@
 }
 
 .cabecalho code {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--fonte-mono), monospace;
   font-size: 0.9em;
 }
 
 .selo {
   display: inline-block;
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--fonte-mono), monospace;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--marca);
+  color: var(--texto);
   background: var(--marca-suave);
   padding: 4px 10px;
   border-radius: 999px;
@@ -99,7 +99,7 @@
 }
 
 .resultado dd {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--fonte-mono), monospace;
   font-variant-numeric: tabular-nums;
 }
 
@@ -165,7 +165,7 @@
 }
 
 .horarios li {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--fonte-mono), monospace;
   font-size: 14px;
   border: 1px solid var(--borda);
   border-radius: 8px;

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Logo } from '@/componentes/logo'
 import { BotaoLink } from '@/componentes/ui'
 import s from './inicio.module.css'
 
@@ -8,9 +9,7 @@ export default function Inicio() {
     <main className={s.pagina}>
       <header className={s.topo}>
         <span className={s.logo}>
-          <span className={s.icone} aria-hidden>
-            ✂
-          </span>
+          <Logo tamanho={32} />
           Navalha
         </span>
         <nav className={s.links}>

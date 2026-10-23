@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
   // Painel e app dependem da sessão em toda tela: cacheComponents fica desligado por enquanto
   // (docs/roadmap.md, decisões).
   poweredByHeader: false,
+  // O indicador do modo dev fica à direita para não cobrir o menu lateral do painel.
+  devIndicators: { position: 'bottom-right' },
   async headers() {
     return [{ source: '/:path*', headers: cabecalhosDeSeguranca }]
   },

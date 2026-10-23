@@ -1,23 +1,35 @@
 import { instanteLocal, minutos, partesLocais, type StatusAgendamento } from '@navalha/core'
+import { ArrowDown, ArrowUp, CalendarCheck, Gauge, Plus, Star, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { BarrasHorizontais, GraficoDeColunas } from '@/componentes/graficos'
-import { BotaoLink, Cartao, Etiqueta, Vazio } from '@/componentes/ui'
-import { hora, reais, variacao } from '@/lib/formato'
+import { Avatar, BotaoLink, Cartao, Etiqueta, Vazio } from '@/componentes/ui'
+import { diaDaSemana } from '@/lib/agenda'
+import { diaPorExtenso, hora, variacaoPct } from '@/lib/formato'
 import { barbeariaDoPainel } from '@/lib/painel'
 import { ATIVOS, diasAntes, STATUS } from '@/lib/status'
 import d from './dashboard.module.css'
 import s from './painel.module.css'
+import { SeletorDePeriodo } from './periodo'
 
 // Figma Admin 01 · Dashboard. Leitura com o RLS do dono. "Próximas 3h" parte do relógio real
-// (backlog Admin · Todas as telas: status batendo com o relógio).
+// (backlog Admin · Todas as telas: status batendo com o relógio). ?periodo=7|30|90
 
-export default async function Dashboard() {
+const FORA_DA_AGENDA = [
+  'cancelado_no_prazo',
+  'cancelado_fora_do_prazo',
+  'cancelado_pela_barbearia',
+  'liberado',
+]
+
+export default async function Dashboard({ searchParams }: PageProps<'/painel'>) {
+  const { periodo } = await searchParams
+  const dias = periodo === '7' ? 7 : periodo === '90' ? 90 : 30
   const { supabase, barbearia } = await barbeariaDoPainel()
   const fuso = barbearia.fuso
   const agora = new Date()
   const hoje = partesLocais(agora, fuso)
-  const inicio30 = instanteLocal(diasAntes(hoje.data, 29), 0, fuso)
-  const inicio60 = instanteLocal(diasAntes(hoje.data, 59), 0, fuso)
+  const inicioAtual = instanteLocal(diasAntes(hoje.data, dias - 1), 0, fuso)
+  const inicioAnterior = instanteLocal(diasAntes(hoje.data, 2 * dias - 1), 0, fuso)
   const fimDeHoje = instanteLocal(hoje.data, 24 * 60, fuso)
 
   const [{ data: agendamentos }, { data: avaliacoes }, { data: equipe }, { data: turnos }] =
@@ -26,79 +38,91 @@ export default async function Dashboard() {
         .from('agendamentos')
         .select('id, inicio, fim, status, valor_pago_centavos, barbeiro_id')
         .eq('barbearia_id', barbearia.id)
-        .gte('inicio', inicio60.toISOString())
+        .gte('inicio', inicioAnterior.toISOString())
         .lt('inicio', fimDeHoje.toISOString()),
-      supabase.from('avaliacoes').select('nota').eq('barbearia_id', barbearia.id),
+      supabase.from('avaliacoes').select('nota, criada_em').eq('barbearia_id', barbearia.id),
       supabase
         .from('perfis_profissionais')
         .select('membro_id, nome_exibicao')
         .eq('barbearia_id', barbearia.id),
       supabase
         .from('horarios_atendimento')
-        .select('membro_id, inicio, fim, pausa_inicio, pausa_fim')
-        .eq('barbearia_id', barbearia.id)
-        .eq('dia_semana', hoje.diaSemana),
+        .select('membro_id, dia_semana, inicio, fim, pausa_inicio, pausa_fim')
+        .eq('barbearia_id', barbearia.id),
     ])
 
   const lista = agendamentos ?? []
   const noPeriodo = (inicio: Date, fim: Date) =>
     lista.filter((a) => new Date(a.inicio) >= inicio && new Date(a.inicio) < fim)
-  const atual = noPeriodo(inicio30, fimDeHoje)
-  const anterior = noPeriodo(inicio60, inicio30)
+  const atual = noPeriodo(inicioAtual, fimDeHoje)
+  const anterior = noPeriodo(inicioAnterior, inicioAtual)
   const receita = (itens: typeof lista) =>
     itens.filter((a) => a.status === 'concluido').reduce((t, a) => t + a.valor_pago_centavos, 0)
   const validos = (itens: typeof lista) => itens.filter((a) => a.status !== 'liberado').length
+  const duracao = (a: { inicio: string; fim: string }) =>
+    (new Date(a.fim).getTime() - new Date(a.inicio).getTime()) / 60_000
 
-  const receitaAtual = receita(atual)
-  const receitaAnterior = receita(anterior)
-  const notas = (avaliacoes ?? []).map((a) => a.nota)
-  const mediaNotas = notas.length ? notas.reduce((t, n) => t + n, 0) / notas.length : null
+  // Ocupação: minutos agendados / minutos de expediente da equipe nos dias do período.
+  const expedienteDoTurno = (t: NonNullable<typeof turnos>[number]) =>
+    minutos(t.fim.slice(0, 5)) -
+    minutos(t.inicio.slice(0, 5)) -
+    (t.pausa_inicio && t.pausa_fim
+      ? minutos(t.pausa_fim.slice(0, 5)) - minutos(t.pausa_inicio.slice(0, 5))
+      : 0)
+  const porDiaDaSemana = new Map<number, number>()
+  for (const t of turnos ?? [])
+    porDiaDaSemana.set(t.dia_semana, (porDiaDaSemana.get(t.dia_semana) ?? 0) + expedienteDoTurno(t))
+  const ocupacaoDe = (itens: typeof lista, ultimoDia: string) => {
+    let disponivel = 0
+    for (let i = 0; i < dias; i++)
+      disponivel += porDiaDaSemana.get(diaDaSemana(diasAntes(ultimoDia, i))) ?? 0
+    const ocupado = itens
+      .filter((a) => !FORA_DA_AGENDA.includes(a.status))
+      .reduce((t, a) => t + duracao(a), 0)
+    return disponivel ? Math.round((ocupado / disponivel) * 100) : null
+  }
+  const ocupacaoAtual = ocupacaoDe(atual, hoje.data)
+  const ocupacaoAnterior = ocupacaoDe(anterior, diasAntes(hoje.data, dias))
 
-  // Receita por dia (concluídos), nos últimos 30 dias, no fuso da barbearia.
+  // Avaliação: a média geral (a que o cliente vê) hoje e no fim do período anterior.
+  const media = (notas: number[]) =>
+    notas.length ? notas.reduce((t, n) => t + n, 0) / notas.length : null
+  const todas = avaliacoes ?? []
+  const mediaAtual = media(todas.map((a) => a.nota))
+  const mediaAnterior = media(
+    todas.filter((a) => new Date(a.criada_em) < inicioAtual).map((a) => a.nota),
+  )
+
+  // Receita por dia (concluídos), no fuso da barbearia. Sábado em destaque; hoje ainda parcial.
   const porDia = new Map<string, number>()
-  for (let i = 29; i >= 0; i--) porDia.set(diasAntes(hoje.data, i), 0)
+  for (let i = dias - 1; i >= 0; i--) porDia.set(diasAntes(hoje.data, i), 0)
   for (const a of atual) {
     if (a.status !== 'concluido') continue
     const dia = partesLocais(new Date(a.inicio), fuso).data
     porDia.set(dia, (porDia.get(dia) ?? 0) + a.valor_pago_centavos)
   }
+  const receitaAtual = receita(atual)
 
-  // Ocupação de hoje por barbeiro: minutos agendados / minutos de expediente.
+  // Ocupação de hoje por barbeiro.
   const nomeDe = new Map((equipe ?? []).map((p) => [p.membro_id, p.nome_exibicao]))
-  const ocupacao = (turnos ?? []).map((t) => {
-    const disponivel =
-      minutos(t.fim.slice(0, 5)) -
-      minutos(t.inicio.slice(0, 5)) -
-      (t.pausa_inicio && t.pausa_fim
-        ? minutos(t.pausa_fim.slice(0, 5)) - minutos(t.pausa_inicio.slice(0, 5))
-        : 0)
-    const ocupado = lista
-      .filter(
-        (a) =>
-          a.barbeiro_id === t.membro_id &&
-          partesLocais(new Date(a.inicio), fuso).data === hoje.data &&
-          ![
-            'cancelado_no_prazo',
-            'cancelado_fora_do_prazo',
-            'cancelado_pela_barbearia',
-            'liberado',
-          ].includes(a.status),
-      )
-      .reduce(
-        (total, a) => total + (new Date(a.fim).getTime() - new Date(a.inicio).getTime()) / 60_000,
-        0,
-      )
-    return {
-      rotulo: nomeDe.get(t.membro_id) ?? 'Barbeiro',
-      valor: disponivel > 0 ? Math.round((ocupado / disponivel) * 100) : 0,
-      ocupado,
-      disponivel,
-    }
-  })
-  const ocupacaoTotal = ocupacao.reduce((t, o) => t + o.disponivel, 0)
-  const ocupacaoHoje = ocupacaoTotal
-    ? Math.round((ocupacao.reduce((t, o) => t + o.ocupado, 0) / ocupacaoTotal) * 100)
-    : null
+  const ocupacao = (turnos ?? [])
+    .filter((t) => t.dia_semana === hoje.diaSemana)
+    .map((t) => {
+      const disponivel = expedienteDoTurno(t)
+      const ocupado = lista
+        .filter(
+          (a) =>
+            a.barbeiro_id === t.membro_id &&
+            partesLocais(new Date(a.inicio), fuso).data === hoje.data &&
+            !FORA_DA_AGENDA.includes(a.status),
+        )
+        .reduce((total, a) => total + duracao(a), 0)
+      return {
+        rotulo: nomeDe.get(t.membro_id) ?? 'Barbeiro',
+        valor: disponivel > 0 ? Math.round((ocupado / disponivel) * 100) : 0,
+      }
+    })
+    .sort((a, b) => b.valor - a.valor)
 
   // Próximas 3 horas e serviços mais pedidos.
   const em3h = new Date(agora.getTime() + 3 * 3_600_000)
@@ -115,9 +139,7 @@ export default async function Dashboard() {
     proximosIds.length
       ? supabase
           .from('agendamentos')
-          .select(
-            'id, codigo, inicio, status, barbeiro_id, clientes(nome), agendamento_servicos(nome)',
-          )
+          .select('id, inicio, status, barbeiro_id, clientes(nome), agendamento_servicos(nome)')
           .in('id', proximosIds)
           .order('inicio')
       : Promise.resolve({ data: [] }),
@@ -126,40 +148,53 @@ export default async function Dashboard() {
       : Promise.resolve({ data: [] as { nome: string }[] }),
   ])
   const contagem = new Map<string, number>()
-  for (const s of servicosFeitos ?? []) contagem.set(s.nome, (contagem.get(s.nome) ?? 0) + 1)
+  for (const x of servicosFeitos ?? []) contagem.set(x.nome, (contagem.get(x.nome) ?? 0) + 1)
   const maisPedidos = [...contagem.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([rotulo, valor]) => ({ rotulo, valor }))
 
-  const indicadores = [
+  const indicadores: {
+    rotulo: string
+    icone: typeof Wallet
+    valor: string
+    delta: { valor: number; texto: string } | null
+  }[] = [
     {
       rotulo: 'Receita',
-      valor: reais(receitaAtual),
-      delta: variacao(receitaAtual, receitaAnterior),
+      icone: Wallet,
+      valor: reaisInteiros(receitaAtual),
+      delta: percentual(variacaoPct(receitaAtual, receita(anterior))),
     },
     {
       rotulo: 'Agendamentos',
-      valor: String(validos(atual)),
-      delta: variacao(validos(atual), validos(anterior)),
+      icone: CalendarCheck,
+      valor: validos(atual).toLocaleString('pt-BR'),
+      delta: percentual(variacaoPct(validos(atual), validos(anterior))),
     },
     {
-      rotulo: 'Ocupação de hoje',
-      valor: ocupacaoHoje === null ? '—' : `${ocupacaoHoje}%`,
-      delta: null,
+      rotulo: 'Ocupação da agenda',
+      icone: Gauge,
+      valor: ocupacaoAtual === null ? '—' : `${ocupacaoAtual}%`,
+      delta:
+        ocupacaoAtual === null || ocupacaoAnterior === null
+          ? null
+          : {
+              valor: ocupacaoAtual - ocupacaoAnterior,
+              texto: `${Math.abs(ocupacaoAtual - ocupacaoAnterior)} pp`,
+            },
     },
     {
       rotulo: 'Avaliação média',
-      valor:
-        mediaNotas === null
-          ? '—'
-          : mediaNotas.toLocaleString('pt-BR', {
-              minimumFractionDigits: 1,
-              maximumFractionDigits: 1,
-            }),
-      delta: notas.length
-        ? `${notas.length} ${notas.length === 1 ? 'avaliação' : 'avaliações'}`
-        : null,
+      icone: Star,
+      valor: mediaAtual === null ? '—' : umaCasa(mediaAtual),
+      delta:
+        mediaAtual === null || mediaAnterior === null
+          ? null
+          : {
+              valor: Math.round((mediaAtual - mediaAnterior) * 10) / 10,
+              texto: umaCasa(Math.abs(Math.round((mediaAtual - mediaAnterior) * 10) / 10)),
+            },
     },
   ]
 
@@ -168,62 +203,93 @@ export default async function Dashboard() {
       <div className={s.cabecalhoPagina}>
         <div>
           <h1>Dashboard</h1>
-          <p>Visão geral dos últimos 30 dias, comparada aos 30 dias anteriores.</p>
+          <p>{diaPorExtenso(agora, fuso)} · visão geral da barbearia</p>
         </div>
         <div className={s.acoes}>
-          <BotaoLink href="/painel/agenda?novo=1">Novo agendamento</BotaoLink>
+          <SeletorDePeriodo dias={dias} />
+          <BotaoLink href="/painel/agenda?novo=1" variante="secundario">
+            Novo agendamento
+            <Plus size={18} strokeWidth={1.75} aria-hidden />
+          </BotaoLink>
         </div>
       </div>
 
-      {!barbearia.recebimentos_ativos_em ? (
-        <Cartao className={d.aviso}>
-          <strong>Ative os recebimentos para receber agendamentos online.</strong>
-          <span>Sem isso a página da barbearia não aceita agendamentos pagos.</span>
-          <BotaoLink href="/painel/configuracoes" variante="secundario">
-            Ativar recebimentos
-          </BotaoLink>
-        </Cartao>
-      ) : null}
-
       <div className={d.indicadores}>
-        {indicadores.map((i) => (
-          <Cartao key={i.rotulo}>
-            <p className={d.indicadorRotulo}>{i.rotulo}</p>
-            <p className={d.indicadorValor}>{i.valor}</p>
-            {i.delta ? (
-              <p className={d.indicadorDelta}>
-                {i.delta} {i.rotulo === 'Avaliação média' ? '' : 'vs. período anterior'}
+        {indicadores.map((i) => {
+          const Icone = i.icone
+          return (
+            <Cartao key={i.rotulo} className={d.indicador}>
+              <p className={d.indicadorRotulo}>
+                {i.rotulo}
+                <Icone size={18} strokeWidth={1.5} aria-hidden />
               </p>
-            ) : null}
-          </Cartao>
-        ))}
+              <p className={d.indicadorValor}>{i.valor}</p>
+              {i.delta ? (
+                <p className={d.indicadorDelta}>
+                  <span
+                    className={d.delta}
+                    data-sentido={
+                      i.delta.valor > 0 ? 'alta' : i.delta.valor < 0 ? 'baixa' : undefined
+                    }
+                  >
+                    {i.delta.valor > 0 ? (
+                      <ArrowUp size={12} strokeWidth={2} aria-label="alta de" />
+                    ) : i.delta.valor < 0 ? (
+                      <ArrowDown size={12} strokeWidth={2} aria-label="queda de" />
+                    ) : null}
+                    {i.delta.texto}
+                  </span>
+                  vs. período anterior
+                </p>
+              ) : (
+                <p className={d.indicadorDelta}>Sem base para comparar</p>
+              )}
+            </Cartao>
+          )
+        })}
       </div>
 
       <div className={d.grade}>
-        <Cartao>
+        <Cartao className={d.cartao}>
           <div className={d.cartaoTopo}>
             <div>
               <h2>Receita</h2>
-              <p>Atendimentos concluídos, por dia</p>
+              <p>
+                Últimos {dias} dias · média {reaisInteiros(Math.round(receitaAtual / dias))}/dia
+              </p>
             </div>
-            <strong className="mono">{reais(receitaAtual)}</strong>
+            <strong className={d.total}>{reaisInteiros(receitaAtual)}</strong>
           </div>
           <GraficoDeColunas
-            titulo="Receita por dia nos últimos 30 dias"
-            pontos={[...porDia.entries()].map(([dia, valor]) => ({
-              rotulo: `${dia.slice(8, 10)}/${dia.slice(5, 7)}`,
-              valor,
-              detalhe: new Date(`${dia}T12:00:00Z`).toLocaleDateString('pt-BR', {
-                weekday: 'short',
-                day: '2-digit',
-                month: 'short',
-              }),
-            }))}
+            titulo={`Receita por dia nos últimos ${dias} dias`}
+            pontos={[...porDia.entries()].map(([dia, valor]) => {
+              const meioDia = new Date(`${dia}T12:00:00Z`)
+              return {
+                rotulo: meioDia
+                  .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: 'UTC' })
+                  .replace(' de ', ' ')
+                  .replace('.', ''),
+                valor,
+                detalhe: meioDia.toLocaleDateString('pt-BR', {
+                  weekday: 'short',
+                  day: '2-digit',
+                  month: 'short',
+                  timeZone: 'UTC',
+                }),
+                tom: dia === hoje.data ? 'atual' : diaDaSemana(dia) === 6 ? 'destaque' : 'base',
+              }
+            })}
             formato="reais"
+            rotuloACada={dias === 7 ? 1 : 7}
+            legenda={[
+              { tom: 'base', rotulo: 'Dias de semana' },
+              { tom: 'destaque', rotulo: 'Sábados' },
+              { tom: 'atual', rotulo: 'Hoje (parcial)' },
+            ]}
           />
         </Cartao>
 
-        <Cartao>
+        <Cartao className={d.cartao}>
           <div className={d.cartaoTopo}>
             <div>
               <h2>Próximas 3h</h2>
@@ -231,7 +297,10 @@ export default async function Dashboard() {
                 {hora(agora, fuso)} – {hora(em3h, fuso)} · hoje
               </p>
             </div>
-            <Etiqueta>{(proximos ?? []).length} atendimentos</Etiqueta>
+            <Etiqueta>
+              {(proximos ?? []).length}{' '}
+              {(proximos ?? []).length === 1 ? 'atendimento' : 'atendimentos'}
+            </Etiqueta>
           </div>
           {(proximos ?? []).length === 0 ? (
             <Vazio titulo="Nada nas próximas 3 horas">
@@ -241,14 +310,17 @@ export default async function Dashboard() {
             <ul className={d.proximos}>
               {(proximos ?? []).map((p) => {
                 const status = STATUS[p.status as StatusAgendamento]
+                const cliente = p.clientes?.nome ?? 'Cliente'
+                const barbeiro = nomeDe.get(p.barbeiro_id) ?? 'Barbeiro'
                 return (
                   <li key={p.id}>
-                    <span className="mono">{hora(p.inicio, fuso)}</span>
-                    <span>
-                      <strong>{p.clientes?.nome ?? 'Cliente'}</strong>
+                    <span className={d.proximoHora}>{hora(p.inicio, fuso)}</span>
+                    <Avatar nome={cliente} tamanho={32} />
+                    <span className={d.proximoCliente}>
+                      <strong>{cliente}</strong>
                       <span>
-                        {p.agendamento_servicos.map((x) => x.nome).join(', ')} ·{' '}
-                        {nomeDe.get(p.barbeiro_id) ?? 'Barbeiro'}
+                        {p.agendamento_servicos.map((x) => x.nome).join(' + ')} ·{' '}
+                        {barbeiro.split(' ')[0]}
                       </span>
                     </span>
                     <Etiqueta tom={status.tom}>{status.rotulo}</Etiqueta>
@@ -258,8 +330,10 @@ export default async function Dashboard() {
             </ul>
           )}
         </Cartao>
+      </div>
 
-        <Cartao>
+      <div className={d.gradeDupla}>
+        <Cartao className={d.cartao}>
           <div className={d.cartaoTopo}>
             <div>
               <h2>Ocupação por barbeiro</h2>
@@ -267,17 +341,17 @@ export default async function Dashboard() {
             </div>
           </div>
           {ocupacao.length ? (
-            <BarrasHorizontais itens={ocupacao} maximo={100} formato="percentual" />
+            <BarrasHorizontais itens={ocupacao} maximo={100} formato="percentual" comAvatar />
           ) : (
             <Vazio titulo="Ninguém atende hoje" />
           )}
         </Cartao>
 
-        <Cartao>
+        <Cartao className={d.cartao}>
           <div className={d.cartaoTopo}>
             <div>
               <h2>Serviços mais pedidos</h2>
-              <p>Últimos 30 dias</p>
+              <p>Últimos {dias} dias</p>
             </div>
           </div>
           {maisPedidos.length ? (
@@ -289,4 +363,21 @@ export default async function Dashboard() {
       </div>
     </>
   )
+}
+
+/** "R$ 16.443": os indicadores do Figma arredondam para reais. */
+function reaisInteiros(centavos: number): string {
+  return `R$ ${Math.round(centavos / 100).toLocaleString('pt-BR')}`
+}
+
+function umaCasa(valor: number): string {
+  return valor.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+}
+
+function percentual(pct: number | null): { valor: number; texto: string } | null {
+  if (pct === null) return null
+  return {
+    valor: Math.round(pct * 10) / 10,
+    texto: `${umaCasa(Math.abs(Math.round(pct * 10) / 10))}%`,
+  }
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -78,7 +79,10 @@ export function ConvidarBarbeiro({
 
   return (
     <>
-      <Botao onClick={() => setAberto(true)}>Convidar barbeiro +</Botao>
+      <Botao variante="secundario" onClick={() => setAberto(true)}>
+        Convidar barbeiro
+        <Plus size={18} strokeWidth={1.75} aria-hidden />
+      </Botao>
       <Modal
         aberto={aberto}
         aoFechar={fechar}

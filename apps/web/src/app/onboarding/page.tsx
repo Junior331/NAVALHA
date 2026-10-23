@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { Logo } from '@/componentes/logo'
 import { Botao, BotaoLink, Campo, Cartao, Mensagem } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { api, ErroDaApi, supabaseNoNavegador } from '@/lib/supabase'
@@ -56,6 +57,7 @@ export default function Onboarding() {
   return (
     <main className={s.pagina}>
       <header className={s.topo}>
+        <Logo tamanho={30} titulo="Navalha" />
         <ol className={s.etapas}>
           {ETAPAS.map((e, i) => (
             <li
@@ -135,7 +137,7 @@ function Equipe({ dono, avancar }: { dono: Dono; avancar: () => void }) {
       </Cartao>
       {links.map((l) => (
         <div key={l.link} className={t.linhaLink}>
-          <strong style={{ fontFamily: 'var(--font-geist-sans)' }}>{l.nome}</strong>
+          <strong style={{ fontFamily: 'var(--fonte)' }}>{l.nome}</strong>
           <span style={{ flex: 1 }}>{l.link}</span>
           <Botao variante="secundario" onClick={() => navigator.clipboard.writeText(l.link)}>
             Copiar

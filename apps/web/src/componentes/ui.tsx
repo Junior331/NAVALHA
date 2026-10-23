@@ -1,19 +1,22 @@
 'use client'
 
+import { X } from 'lucide-react'
 import Link from 'next/link'
 import {
   forwardRef,
   useEffect,
   useId,
   useRef,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
 } from 'react'
+import { iniciais } from '@/lib/formato'
 import s from './ui.module.css'
 
-type Variante = 'primario' | 'secundario' | 'perigo' | 'fantasma'
+type Variante = 'primario' | 'secundario' | 'perigo' | 'perigoContorno' | 'fantasma'
 
 const classesDoBotao = (variante: Variante, largo?: boolean, grande?: boolean) =>
   [s.botao, s[variante], largo && s.largo, grande && s.grande].filter(Boolean).join(' ')
@@ -109,8 +112,56 @@ export function Cartao({ children, className }: { children: ReactNode; className
 
 export type Tom = 'neutro' | 'sucesso' | 'alerta' | 'risco' | 'informativo'
 
-export function Etiqueta({ tom = 'neutro', children }: { tom?: Tom; children: ReactNode }) {
-  return <span className={[s.etiqueta, s[tom]].join(' ')}>{children}</span>
+export function Etiqueta({
+  tom = 'neutro',
+  ponto,
+  children,
+}: {
+  tom?: Tom
+  /** Bolinha da cor do status antes do texto (popover do evento). */
+  ponto?: boolean
+  children: ReactNode
+}) {
+  return (
+    <span className={[s.etiqueta, s[tom], ponto && s.comPonto].filter(Boolean).join(' ')}>
+      {children}
+    </span>
+  )
+}
+
+/** Iniciais do nome num círculo (equipe e clientes; o painel não usa foto). */
+export function Avatar({ nome, tamanho = 32 }: { nome: string; tamanho?: number }) {
+  return (
+    <span
+      className={s.avatar}
+      style={{ width: tamanho, height: tamanho, fontSize: Math.max(10, Math.round(tamanho / 3)) }}
+      aria-hidden="true"
+    >
+      {iniciais(nome)}
+    </span>
+  )
+}
+
+/** Menu ou painel flutuante: fecha com Esc e com clique fora dele. */
+export function useFlutuante<T extends HTMLElement = HTMLDivElement>() {
+  const [aberto, setAberto] = useState(false)
+  const raiz = useRef<T>(null)
+  useEffect(() => {
+    if (!aberto) return
+    const fora = (e: PointerEvent) => {
+      if (raiz.current && !raiz.current.contains(e.target as Node)) setAberto(false)
+    }
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAberto(false)
+    }
+    document.addEventListener('pointerdown', fora)
+    document.addEventListener('keydown', tecla)
+    return () => {
+      document.removeEventListener('pointerdown', fora)
+      document.removeEventListener('keydown', tecla)
+    }
+  }, [aberto])
+  return { aberto, setAberto, raiz }
 }
 
 export function Mensagem({
@@ -171,7 +222,7 @@ export function Modal({
           ) : null}
         </div>
         <button type="button" className={s.fechar} onClick={aoFechar} aria-label="Fechar">
-          ×
+          <X size={16} aria-hidden />
         </button>
       </div>
       <div className={s.modalCorpo}>{children}</div>

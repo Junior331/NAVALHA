@@ -1,4 +1,4 @@
-/* Componentes base do painel e das páginas públicas. */
+/* Componentes base do painel e das páginas públicas (Figma Admin: botões claros com borda fina). */
 
 .botao {
   display: inline-flex;
@@ -7,10 +7,10 @@
   gap: 8px;
   min-height: 40px;
   padding: 0 16px;
-  border-radius: var(--raio-p);
+  border-radius: var(--raio-m);
   border: 1px solid transparent;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
@@ -38,16 +38,29 @@
 
 .secundario {
   background: var(--superficie);
-  border-color: var(--borda-forte);
+  border-color: var(--borda);
+  color: var(--texto);
+  box-shadow: var(--sombra-leve);
 }
 
 .secundario:hover:not(:disabled) {
   background: var(--superficie-2);
+  border-color: var(--borda-forte);
 }
 
 .perigo {
   background: var(--perigo);
   color: #fff;
+}
+
+.perigoContorno {
+  background: var(--superficie);
+  border-color: var(--borda);
+  color: var(--perigo);
+}
+
+.perigoContorno:hover:not(:disabled) {
+  background: var(--perigo-suave);
 }
 
 .fantasma {
@@ -82,9 +95,13 @@
   width: 100%;
   min-height: 42px;
   padding: 8px 12px;
-  border-radius: var(--raio-p);
+  border-radius: var(--raio-m);
   border: 1px solid var(--borda-forte);
   background: var(--superficie);
+}
+
+.entrada::placeholder {
+  color: var(--texto-suave);
 }
 
 .entrada[aria-invalid='true'] {
@@ -105,7 +122,7 @@
   background: var(--superficie);
   border: 1px solid var(--borda);
   border-radius: var(--raio);
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .etiqueta {
@@ -114,39 +131,44 @@
   gap: 6px;
   padding: 3px 8px;
   border-radius: 999px;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-family: var(--fonte-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-.etiqueta::before {
+.comPonto::before {
   content: '';
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: currentColor;
+  background: var(--cor-ponto, currentColor);
 }
 
 .neutro {
-  background: var(--superficie-2);
+  background: var(--neutro-suave);
   color: var(--texto-2);
+  --cor-ponto: var(--neutro-cor);
 }
 
 .sucesso {
   background: var(--sucesso-suave);
   color: var(--sucesso);
+  --cor-ponto: var(--sucesso-cor);
 }
 
 .alerta {
   background: var(--alerta-suave);
   color: var(--alerta);
+  --cor-ponto: var(--alerta-cor);
 }
 
 .risco {
   background: var(--perigo-suave);
   color: var(--perigo);
+  --cor-ponto: var(--perigo-cor);
 }
 
 .informativo {
@@ -154,9 +176,21 @@
   color: var(--info);
 }
 
+.avatar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  color: var(--texto-2);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
 .mensagem {
   padding: 12px 14px;
-  border-radius: var(--raio-p);
+  border-radius: var(--raio-m);
   font-size: 14px;
 }
 
@@ -180,7 +214,7 @@
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   border: 1px solid var(--borda);
-  border-radius: var(--raio);
+  border-radius: 16px;
   background: var(--superficie);
   color: var(--texto);
   box-shadow: var(--sombra);
@@ -188,7 +222,7 @@
 }
 
 .modal::backdrop {
-  background: rgb(15 14 12 / 45%);
+  background: rgb(27 31 39 / 40%);
 }
 
 .modalCabecalho {
@@ -196,34 +230,44 @@
   justify-content: space-between;
   align-items: start;
   gap: 16px;
-  padding: 20px 20px 0;
+  padding: 20px 24px 0;
 }
 
 .modalCabecalho h2 {
   font-size: 18px;
+  font-weight: 500;
 }
 
 .modalCorpo {
   display: grid;
   gap: 16px;
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .modalRodape {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  padding: 16px 20px;
+  padding: 16px 24px;
   border-top: 1px solid var(--borda);
 }
 
 .fechar {
+  flex: none;
   width: 32px;
   height: 32px;
+  display: grid;
+  place-items: center;
   border-radius: var(--raio-p);
   border: 1px solid var(--borda);
   background: var(--superficie);
+  color: var(--texto);
   cursor: pointer;
+}
+
+.fechar:hover {
+  background: var(--superficie-2);
 }
 
 .vazio {

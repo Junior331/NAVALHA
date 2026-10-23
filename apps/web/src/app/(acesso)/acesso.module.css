@@ -12,8 +12,8 @@
 
 .marca {
   display: none;
-  background: #16130f;
-  color: #f2efe9;
+  background: #1b1f27;
+  color: #f6f7f9;
   padding: 48px;
   flex-direction: column;
   justify-content: space-between;
@@ -34,17 +34,6 @@
   text-decoration: none;
 }
 
-.icone {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--marca);
-  display: grid;
-  place-items: center;
-  color: #16130f;
-  font-size: 18px;
-}
-
 .marca h2 {
   font-size: 32px;
   line-height: 1.15;
@@ -53,8 +42,12 @@
 }
 
 .marca p {
-  color: #a39d94;
+  color: #a3a9b5;
   max-width: 40ch;
+}
+
+.marca :global(.rotulo) {
+  color: #a3a9b5;
 }
 
 .conteudo {
@@ -119,7 +112,7 @@
 
 .codigo {
   letter-spacing: 0.5em;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--fonte-mono);
   font-size: 20px;
   text-align: center;
 }

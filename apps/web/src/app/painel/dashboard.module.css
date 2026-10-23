@@ -1,35 +1,88 @@
+/* Dashboard (Figma Admin 01) */
+
 .indicadores {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 
+.indicador {
+  padding: 20px;
+}
+
 .indicadorRotulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   color: var(--texto-suave);
   font-size: 14px;
 }
 
-.indicadorValor {
-  font-size: 30px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin: 6px 0 4px;
-}
-
-.indicadorDelta {
-  font-size: 12px;
+.indicadorRotulo svg {
+  flex: none;
   color: var(--texto-suave);
 }
 
-.grade {
+.indicadorValor {
+  margin: 10px 0 12px;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.indicadorDelta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--neutro-suave);
+  color: var(--texto-2);
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.delta[data-sentido='alta'] {
+  background: var(--sucesso-suave);
+  color: var(--sucesso);
+}
+
+.delta[data-sentido='baixa'] {
+  background: var(--perigo-suave);
+  color: var(--perigo);
+}
+
+.grade,
+.gradeDupla {
   display: grid;
   gap: 16px;
 }
 
 @media (min-width: 1100px) {
   .grade {
-    grid-template-columns: 1.6fr 1fr;
+    grid-template-columns: 1.12fr 1fr;
   }
+
+  .gradeDupla {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.cartao {
+  padding: 24px;
 }
 
 .cartaoTopo {
@@ -37,16 +90,23 @@
   justify-content: space-between;
   align-items: start;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .cartaoTopo h2 {
   font-size: 16px;
+  font-weight: 500;
 }
 
 .cartaoTopo p {
   font-size: 13px;
   color: var(--texto-suave);
+}
+
+.total {
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .proximos {
@@ -56,33 +116,95 @@
 
 .proximos li {
   display: grid;
-  grid-template-columns: 52px 1fr auto;
+  grid-template-columns: 48px 32px 1fr auto;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--borda);
+  padding: 12px 0;
 }
 
-.proximos li > span:nth-child(2) {
+.proximos li + li {
+  border-top: 1px solid var(--borda);
+}
+
+.proximoHora {
+  font-family: var(--fonte-mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.proximoCliente {
+  min-width: 0;
   display: grid;
+  line-height: 1.3;
 }
 
-.proximos li > span:nth-child(2) span {
+.proximoCliente strong {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.proximoCliente span {
   font-size: 13px;
   color: var(--texto-suave);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.aviso {
-  display: flex;
-  flex-wrap: wrap;
+.ancora {
+  position: relative;
+}
+
+.periodo {
+  min-height: 40px;
+  display: inline-flex;
   align-items: center;
-  gap: 8px 16px;
-  border-color: var(--marca);
-  background: var(--marca-suave);
+  gap: 10px;
+  padding: 0 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-m);
+  background: var(--superficie);
+  box-shadow: var(--sombra-leve);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
-.aviso span {
-  flex: 1;
+.periodo:hover {
+  background: var(--superficie-2);
+}
+
+.menuPeriodo {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
   min-width: 200px;
-  color: var(--texto-2);
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.menuPeriodo a {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  border-radius: var(--raio-p);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.menuPeriodo a:hover {
+  background: var(--superficie-2);
+}
+
+.menuPeriodo a[aria-current] {
+  font-weight: 500;
 }

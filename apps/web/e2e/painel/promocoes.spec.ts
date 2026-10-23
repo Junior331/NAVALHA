@@ -7,7 +7,7 @@ import { SEED, tokenDe } from '../supabase'
 test('cupom de fim de semana criado no painel não vale numa terça', async ({ page, request }) => {
   const codigo = `FDS${Date.now() % 1_000_000}`
   await page.goto('/painel/promocoes')
-  await page.getByRole('button', { name: 'Nova promoção +' }).click()
+  await page.getByRole('button', { name: 'Nova promoção', exact: true }).click()
   const dialogo = page.getByRole('dialog')
   await dialogo.getByLabel('Nome', { exact: true }).fill('Fim de semana E2E')
   await dialogo.getByLabel('Código do cupom').fill(codigo)

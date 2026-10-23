@@ -1,5 +1,5 @@
 import { consultarCarteira } from '@navalha/servidor'
-import { BotaoLink, Cartao, Etiqueta, Mensagem, Vazio } from '@/componentes/ui'
+import { BotaoLink, Cartao, Mensagem, Vazio } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { dataCurta, hora, reais } from '@/lib/formato'
 import { barbeariaDoPainel } from '@/lib/painel'
@@ -8,8 +8,9 @@ import c from '../conta.module.css'
 import s from '../painel.module.css'
 import { Sacar } from './sacar'
 
-// Financeiro (tela nova, regras-de-negocio §Telas que mudam): retido, a receber (cartão),
-// disponível e saque, e o extrato por agendamento com as taxas. Valores sempre líquidos.
+// Financeiro · Receitas (tela nova, regras-de-negocio §Telas que mudam): retido, a receber
+// (cartão), disponível e saque, e o extrato por agendamento com as taxas. Valores sempre
+// líquidos. Os saques ficam em Repasses.
 
 const EVENTO: Record<string, string> = {
   concluido: 'Atendido',
@@ -17,12 +18,6 @@ const EVENTO: Record<string, string> = {
   cancelado_fora_do_prazo: 'Cancelado fora do prazo',
   no_show: 'No-show',
   cancelado_pela_barbearia: 'Cancelado pela barbearia',
-}
-
-const SAQUE: Record<string, { rotulo: string; tom: 'sucesso' | 'alerta' | 'risco' }> = {
-  pendente: { rotulo: 'Processando', tom: 'alerta' },
-  concluida: { rotulo: 'Enviado', tom: 'sucesso' },
-  falhou: { rotulo: 'Falhou', tom: 'risco' },
 }
 
 export default async function Financeiro() {
@@ -60,7 +55,7 @@ export default async function Financeiro() {
     )
   }
 
-  const [carteira, lancamentos, saques] = await Promise.all([
+  const [carteira, lancamentos] = await Promise.all([
     consultarCarteira(contexto(), { id: usuarioId, anonimo: false }, barbearia.id),
     supabase
       .from('lancamentos')
@@ -71,19 +66,13 @@ export default async function Financeiro() {
       .eq('tipo', 'liquidacao')
       .order('criado_em', { ascending: false })
       .limit(50),
-    supabase
-      .from('saques')
-      .select('id, criado_em, valor_centavos, status')
-      .eq('barbearia_id', barbearia.id)
-      .order('criado_em', { ascending: false })
-      .limit(10),
   ])
 
   return (
     <>
       <div className={s.cabecalhoPagina}>
         <div>
-          <h1>Financeiro</h1>
+          <h1>Receitas</h1>
           <p>Valores já sem as taxas do gateway e da Navalha.</p>
         </div>
         <Sacar
@@ -132,7 +121,7 @@ export default async function Financeiro() {
         </Cartao>
       </div>
 
-      <section className={t.envoltorio} aria-labelledby="titulo-extrato">
+      <section className={t.envoltorio} aria-labelledby="titulo-extrato" tabIndex={0}>
         <div className={t.ferramentas}>
           <div>
             <h2 id="titulo-extrato" style={{ fontSize: 16 }}>
@@ -213,43 +202,6 @@ export default async function Financeiro() {
           </div>
         )}
       </section>
-
-      {saques.data && saques.data.length > 0 ? (
-        <section className={t.envoltorio} aria-labelledby="titulo-saques">
-          <div className={t.ferramentas}>
-            <h2 id="titulo-saques" style={{ fontSize: 16 }}>
-              Saques
-            </h2>
-          </div>
-          <table className={t.tabela}>
-            <thead>
-              <tr>
-                <th scope="col">Data</th>
-                <th scope="col" className={c.numero}>
-                  Valor
-                </th>
-                <th scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {saques.data.map((q) => {
-                const status = SAQUE[q.status] ?? { rotulo: q.status, tom: 'alerta' as const }
-                return (
-                  <tr key={q.id}>
-                    <td>
-                      {dataCurta(q.criado_em, fuso)}, {hora(q.criado_em, fuso)}
-                    </td>
-                    <td className={c.numero}>{reais(q.valor_centavos)}</td>
-                    <td>
-                      <Etiqueta tom={status.tom}>{status.rotulo}</Etiqueta>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </section>
-      ) : null}
     </>
   )
 }

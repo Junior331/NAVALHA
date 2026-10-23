@@ -1,5 +1,6 @@
 'use client'
 
+import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
 import { Botao, Campo, Mensagem, Modal, Selecao } from '@/componentes/ui'
@@ -31,14 +32,17 @@ export function NovoAgendamento({
   contexto,
   servicos,
   dataInicial,
+  abrirAoCarregar = false,
 }: {
   contexto: ContextoDaAgenda
   servicos: ServicoDoBalcao[]
   dataInicial: string
+  /** ?novo=1 (atalho do Dashboard) abre o passo a passo direto. */
+  abrirAoCarregar?: boolean
 }) {
   const router = useRouter()
   const { fuso } = contexto
-  const [aberto, setAberto] = useState(false)
+  const [aberto, setAberto] = useState(abrirAoCarregar)
   const [passo, setPasso] = useState(0)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
@@ -386,7 +390,10 @@ export function NovoAgendamento({
 
   return (
     <>
-      <Botao onClick={() => setAberto(true)}>Novo agendamento +</Botao>
+      <Botao variante="secundario" onClick={() => setAberto(true)}>
+        Novo agendamento
+        <Plus size={18} strokeWidth={1.75} aria-hidden />
+      </Botao>
       {aberto ? (
         <Modal
           aberto
