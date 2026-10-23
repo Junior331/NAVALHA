@@ -133,6 +133,17 @@ describe('criarAgendamento', () => {
     expect(erro.codigo).toBe('horario_indisponivel')
   })
 
+  it('o cliente não segura mais de um horário com Pix sem pagar', async () => {
+    const { ctx, cliente, entrada } = await cenario()
+    await criarAgendamento(ctx, cliente, entrada({ meio: 'pix' }))
+
+    const erro = await erroDe(
+      criarAgendamento(ctx, cliente, entrada({ meio: 'pix', inicio: TERCA_SEGUINTE_14H })),
+    )
+    expect(erro.codigo).toBe('estado_invalido')
+    expect(erro.message).toMatch(/Pix aguardando pagamento/)
+  })
+
   it('dois clientes ao mesmo tempo no mesmo horário: só um leva', async () => {
     const { ctx, cliente, entrada } = await cenario()
     const outro = await criarCliente(sql)

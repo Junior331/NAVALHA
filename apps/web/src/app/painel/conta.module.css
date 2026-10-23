@@ -310,3 +310,30 @@
   color: var(--texto);
   font: inherit;
 }
+
+.divulgar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+}
+
+.divulgar img {
+  border-radius: var(--raio-p);
+  border: 1px solid var(--borda);
+  background: #fff;
+}
+
+.botaoLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio-p);
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}

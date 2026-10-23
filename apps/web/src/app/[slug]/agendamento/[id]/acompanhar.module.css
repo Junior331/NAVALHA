@@ -123,3 +123,13 @@
   background: var(--superficie);
   color: var(--texto);
 }
+
+.app {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: var(--raio);
+  background: var(--marca-suave);
+  border: 1px solid var(--borda);
+  font-size: 14px;
+}

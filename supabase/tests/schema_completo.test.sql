@@ -3,7 +3,7 @@
 -- (cadastro leve da página web).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(24);
+select plan(25);
 
 insert into auth.users (id, email, is_anonymous) values
   ('00000000-0000-0000-0000-00000000a001', 'dono-a@teste.local', false),
@@ -123,5 +123,10 @@ select throws_ok('select count(*) from public.bloqueios', '42501', null, 'visita
 select throws_ok('select count(*) from public.subcontas_asaas', '42501', null, 'visitante não acessa subcontas');
 
 reset role;
+select throws_ok(
+  $$ update public.barbearias set capa_url = 'x); background: url(https://exemplo.com/a.png' where slug = 'barbearia-a' $$,
+  '23514', null, 'capa só aceita URL http(s) simples (vai para o CSS da página pública)'
+);
+
 select * from finish();
 rollback;

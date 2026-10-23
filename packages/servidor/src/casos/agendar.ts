@@ -463,6 +463,16 @@ async function reservarComPix(
   }
 
   await ctx.sql.begin(async (tx) => {
+    // Um Pix em aberto por cliente: sem isso, dá para segurar vários horários sem pagar nenhum.
+    await tx`select pg_advisory_xact_lock(hashtext(${`pix:${pedido.clienteId}`}))`
+    const emAberto = await tx`
+      select 1 from public.reservas_horario where cliente_id = ${pedido.clienteId} and expira_em > ${agora}`
+    if (emAberto.length > 0) {
+      throw new ErroDeNegocio(
+        'estado_invalido',
+        'Você já tem um Pix aguardando pagamento. Pague ou espere ele expirar para agendar outro horário.',
+      )
+    }
     await travarHorario(tx, pedido, agora)
     await tx`
       insert into public.reservas_horario (id, barbearia_id, barbeiro_id, cliente_id, inicio, fim, expira_em, dados)

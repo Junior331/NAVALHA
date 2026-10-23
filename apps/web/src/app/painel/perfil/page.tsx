@@ -1,7 +1,9 @@
+import QRCode from 'qrcode'
 import { Mensagem } from '@/componentes/ui'
 import { barbeariaDoPainel } from '@/lib/painel'
 import c from '../conta.module.css'
 import s from '../painel.module.css'
+import { Divulgar } from './divulgar'
 import { EditorDoPerfil } from './editor'
 
 // Figma Admin 09 · Perfil da barbearia: dados públicos, imagens, horário de funcionamento e
@@ -22,6 +24,12 @@ export default async function Perfil() {
       .select('dia_semana, abre, fecha')
       .eq('barbearia_id', barbearia.id),
   ])
+  const link = `${process.env.NEXT_PUBLIC_URL_PUBLICA ?? 'http://localhost:3000'}/${barbearia.slug}`
+  const qrCode = await QRCode.toDataURL(link, {
+    margin: 1,
+    width: 512,
+    color: { dark: '#16130f', light: '#ffffff' },
+  })
 
   return (
     <div className={c.coluna}>
@@ -34,6 +42,7 @@ export default async function Perfil() {
           Ver página pública ↗
         </a>
       </div>
+      <Divulgar link={link} qrCode={qrCode} slug={barbearia.slug} />
       {papel !== 'dono' || !dados.data ? (
         <Mensagem tipo="info">Só o dono da barbearia altera o perfil.</Mensagem>
       ) : (

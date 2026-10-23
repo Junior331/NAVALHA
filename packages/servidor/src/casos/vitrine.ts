@@ -272,7 +272,10 @@ export interface BarbeariaNaBusca {
   aceitaAgendamentos: boolean
 }
 
-/** Busca do app (Cliente 04): só quem escolheu aparecer nas buscas (Admin 09). */
+/**
+ * Busca do app (Cliente 04): só quem escolheu aparecer nas buscas (Admin 09) e já ativou os
+ * recebimentos (docs/Navalha — Fluxo do dono até o cliente agendar, passo 3).
+ */
 export async function buscarBarbearias(ctx: Contexto, termo: string): Promise<BarbeariaNaBusca[]> {
   const filtro = `%${termo.trim()}%`
   const linhas = await ctx.sql<
@@ -292,7 +295,7 @@ export async function buscarBarbearias(ctx: Contexto, termo: string): Promise<Ba
       (b.aceitar_agendamentos_online and b.recebimentos_ativos_em is not null) as aceita
     from public.barbearias b
     left join public.avaliacoes a on a.barbearia_id = b.id
-    where b.aparecer_nas_buscas
+    where b.aparecer_nas_buscas and b.recebimentos_ativos_em is not null
       and (b.nome ilike ${filtro} or coalesce(b.bairro, '') ilike ${filtro}
         or coalesce(b.cidade, '') ilike ${filtro})
     group by b.id

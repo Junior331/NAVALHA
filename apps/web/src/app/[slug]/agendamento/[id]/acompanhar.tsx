@@ -31,10 +31,12 @@ export function AcompanharAgendamento({
   id,
   barbearia,
   podeSimularPix,
+  lojas,
 }: {
   id: string
   barbearia: Barbearia
   podeSimularPix: boolean
+  lojas: { appStore: string | null; playStore: string | null }
 }) {
   const { fuso } = barbearia
   // O QR Code vem da tela de pagamento; o servidor não guarda a imagem.
@@ -294,6 +296,29 @@ export function AcompanharAgendamento({
           </a>
         ) : null}
       </div>
+      {/* Depois do primeiro agendamento pela web, sugere o app (Fluxo do dono até o cliente). */}
+      {ativo ? (
+        <div className={a.app}>
+          <strong>Baixe o app Navalha</strong>
+          <p>Para remarcar, cancelar e receber o lembrete 1 hora antes, sem precisar deste link.</p>
+          {lojas.appStore || lojas.playStore ? (
+            <div className={f.acoes} style={{ justifyContent: 'flex-start' }}>
+              {lojas.appStore ? (
+                <a className={a.botaoSecundario} href={lojas.appStore}>
+                  App Store
+                </a>
+              ) : null}
+              {lojas.playStore ? (
+                <a className={a.botaoSecundario} href={lojas.playStore}>
+                  Google Play
+                </a>
+              ) : null}
+            </div>
+          ) : (
+            <p className={f.suave}>Em breve na App Store e no Google Play.</p>
+          )}
+        </div>
+      ) : null}
     </Moldura>
   )
 }

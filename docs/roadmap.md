@@ -1,6 +1,6 @@
 # Navalha — Roadmap de desenvolvimento e testes
 
-Oct 22, 2026 · gerado pelo Claude Code · aguardando aprovação
+Oct 22, 2026 · aprovado em 22/10 · fases 0–8 implementadas em 23/10 (o que foi feito, as decisões e as pendências estão em `docs/execucao.md`)
 
 O roadmap se apoia em `docs/mapa.md`, nos três docs de regras (prioridade do `CLAUDE.md`: `ajustes-taxas` > `cartao-pre-autorizado` > `regras-de-negocio`) e em `docs/backlog-figma.md`.
 

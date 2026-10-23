@@ -43,3 +43,40 @@ jobs:
       - run: pnpm --filter @navalha/servidor --filter @navalha/web test:integracao
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+
+  # Fluxos de ponta a ponta (docs/roadmap.md, fase 8): Supabase local completo (Auth, Storage e
+  # Mailpit para os códigos por e-mail), build de produção do web e Playwright com Chromium.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [checks]
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:55321
+      # Chave pública de demonstração do Supabase local (a mesma em todo projeto local; não é segredo).
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      SUPABASE_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55322/postgres
+      NEXT_PUBLIC_URL_PUBLICA: http://localhost:3100
+      PAGAMENTOS: fake
+      ASAAS_WEBHOOK_TOKEN: token-do-ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: supabase start
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: npx playwright test
+        working-directory: apps/web
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

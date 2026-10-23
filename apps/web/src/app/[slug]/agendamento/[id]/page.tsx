@@ -24,6 +24,10 @@ export default async function Agendamento({ params }: PageProps<'/[slug]/agendam
         whatsapp: linkDoWhatsapp(pagina.whatsapp, `Olá! Tenho um agendamento na ${pagina.nome}.`),
       }}
       podeSimularPix={simulacaoDePixLigada()}
+      lojas={{
+        appStore: process.env.NEXT_PUBLIC_APP_STORE_URL ?? null,
+        playStore: process.env.NEXT_PUBLIC_PLAY_STORE_URL ?? null,
+      }}
     />
   )
 }
