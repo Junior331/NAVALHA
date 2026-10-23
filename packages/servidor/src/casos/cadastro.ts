@@ -48,6 +48,25 @@ export interface DadosBarbearia {
   ciclo?: 'mensal' | 'anual'
 }
 
+const SLUGS_RESERVADOS = new Set([
+  'admin',
+  'ajuda',
+  'api',
+  'app',
+  'barbearias',
+  'cadastro',
+  'convite',
+  'entrar',
+  'laboratorio',
+  'navalha',
+  'onboarding',
+  'painel',
+  'privacidade',
+  'recuperar',
+  'termos',
+  'www',
+])
+
 export async function cadastrarBarbearia(
   ctx: Contexto,
   usuario: Usuario,
@@ -61,6 +80,10 @@ export async function cadastrarBarbearia(
       'dados_invalidos',
       'O link pode ter só letras minúsculas, números e hífen',
     )
+  }
+  // A página pública fica em navalha.app/<slug>: o link não pode cobrir uma rota do próprio site.
+  if (SLUGS_RESERVADOS.has(slug)) {
+    throw new ErroDeNegocio('dados_invalidos', 'Esse link é reservado. Escolha outro.')
   }
   if (dados.plano !== 'free' && !dados.ciclo) {
     throw new ErroDeNegocio('dados_invalidos', 'Escolha entre plano mensal e anual')

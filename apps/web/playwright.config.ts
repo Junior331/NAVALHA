@@ -7,6 +7,8 @@ const URL = process.env.E2E_URL ?? 'http://localhost:3100'
 
 export default defineConfig({
   testDir: './e2e',
+  // O next dev compila cada rota na primeira visita: dá folga às esperas.
+  expect: { timeout: 10_000 },
   // Os testes dividem o mesmo banco: em série, para um não mexer na agenda do outro.
   workers: 1,
   retries: process.env.CI ? 1 : 0,

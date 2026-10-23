@@ -1,0 +1,125 @@
+.pix {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 20px;
+  border-radius: var(--raio);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  text-align: center;
+}
+
+.pix img {
+  border-radius: var(--raio-p);
+  background: #fff;
+  image-rendering: pixelated;
+}
+
+.valor {
+  font-size: 24px;
+}
+
+.copiaECola {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.copiaECola code {
+  display: block;
+  padding: 10px;
+  border-radius: var(--raio-p);
+  background: var(--superficie-2);
+  border: 1px solid var(--borda);
+  font-size: 12px;
+  word-break: break-all;
+  text-align: left;
+}
+
+.aguardando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--texto-2);
+  font-size: 14px;
+}
+
+.pulso {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sucesso);
+  animation: pulsar 1.4s ease-in-out infinite;
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso {
+    animation: none;
+  }
+}
+
+.dev {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--borda-forte);
+  border-radius: var(--raio-p);
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.selo {
+  justify-self: start;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--informativo-suave, var(--info-suave));
+  color: var(--texto);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.selo[data-status='confirmado'],
+.selo[data-status='concluido'] {
+  background: var(--sucesso-suave);
+}
+
+.selo[data-status^='cancelado'],
+.selo[data-status='liberado'],
+.selo[data-status='no_show'] {
+  background: var(--perigo-suave);
+}
+
+.botao,
+.botaoSecundario {
+  min-height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--raio-p);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.botao {
+  background: var(--primario);
+  color: var(--primario-texto);
+}
+
+.botaoSecundario {
+  border: 1px solid var(--borda-forte);
+  background: var(--superficie);
+  color: var(--texto);
+}

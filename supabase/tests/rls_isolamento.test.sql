@@ -2,7 +2,7 @@
 -- Barbearia A: dono A, barbeiro A e o cliente X. Barbearia B: dono B (que também atende) e o cliente Y.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(19);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000a001', 'dono-a@teste.local'),
@@ -10,6 +10,10 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000b001', 'dono-b@teste.local'),
   ('00000000-0000-0000-0000-0000000c0001', 'cliente-x@teste.local'),
   ('00000000-0000-0000-0000-0000000c0002', 'cliente-y@teste.local');
+-- Cadastro leve da página web (roadmap 7b): sessões anônimas, sem e-mail no Auth.
+insert into auth.users (id, is_anonymous) values
+  ('00000000-0000-0000-0000-0000000d0001', true),
+  ('00000000-0000-0000-0000-0000000d0002', true);
 
 insert into public.barbearias (id, nome, slug) values
   ('aaaaaaaa-0000-0000-0000-000000000000', 'Barbearia A', 'barbearia-a'),
@@ -22,7 +26,9 @@ insert into public.membros (id, barbearia_id, usuario_id, papel) values
 
 insert into public.clientes (id, usuario_id, nome) values
   ('22222222-0000-0000-0000-0000000c0001', '00000000-0000-0000-0000-0000000c0001', 'Cliente X'),
-  ('22222222-0000-0000-0000-0000000c0002', '00000000-0000-0000-0000-0000000c0002', 'Cliente Y');
+  ('22222222-0000-0000-0000-0000000c0002', '00000000-0000-0000-0000-0000000c0002', 'Cliente Y'),
+  ('22222222-0000-0000-0000-0000000d0001', '00000000-0000-0000-0000-0000000d0001', 'Anônimo 1'),
+  ('22222222-0000-0000-0000-0000000d0002', '00000000-0000-0000-0000-0000000d0002', 'Anônimo 2');
 
 insert into public.servicos (id, barbearia_id, nome, duracao_min, preco_centavos) values
   ('33333333-0000-0000-0000-00000000000a', 'aaaaaaaa-0000-0000-0000-000000000000', 'Corte', 40, 4000),
@@ -32,7 +38,9 @@ insert into public.agendamentos (barbearia_id, cliente_id, barbeiro_id, inicio, 
   ('aaaaaaaa-0000-0000-0000-000000000000', '22222222-0000-0000-0000-0000000c0001', '11111111-0000-0000-0000-00000000a002',
    '2026-10-20 13:00-03', '2026-10-20 13:40-03', 'confirmado', 4000, 4000, now(), now(), 50, 'free'),
   ('bbbbbbbb-0000-0000-0000-000000000000', '22222222-0000-0000-0000-0000000c0002', '11111111-0000-0000-0000-00000000b001',
-   '2026-10-20 14:00-03', '2026-10-20 14:40-03', 'confirmado', 4500, 4500, now(), now(), 50, 'free');
+   '2026-10-20 14:00-03', '2026-10-20 14:40-03', 'confirmado', 4500, 4500, now(), now(), 50, 'free'),
+  ('aaaaaaaa-0000-0000-0000-000000000000', '22222222-0000-0000-0000-0000000d0001', '11111111-0000-0000-0000-00000000a002',
+   '2026-10-20 15:00-03', '2026-10-20 15:40-03', 'confirmado', 4000, 4000, now(), now(), 50, 'free');
 
 -- Integridade: o barbeiro do agendamento precisa ser da mesma barbearia.
 select throws_ok(
@@ -46,10 +54,10 @@ select throws_ok(
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000a001","role":"authenticated"}', true);
 
-select is((select count(*) from public.agendamentos)::int, 1, 'dono A vê só o agendamento de A');
+select is((select count(*) from public.agendamentos)::int, 2, 'dono A vê só os agendamentos de A (inclusive do cadastro leve)');
 select is((select count(*) from public.agendamentos where barbearia_id <> 'aaaaaaaa-0000-0000-0000-000000000000')::int, 0, 'dono A não vê agendamento de B');
 select is((select count(*) from public.membros)::int, 2, 'dono A vê só a equipe de A');
-select is((select count(*) from public.clientes)::int, 1, 'dono A vê só clientes que agendaram em A');
+select is((select count(*) from public.clientes)::int, 2, 'dono A vê só clientes que agendaram em A');
 -- RLS não dá erro no UPDATE: só filtra as linhas. Por isso confere o preço depois.
 update public.servicos set preco_centavos = 1 where barbearia_id = 'bbbbbbbb-0000-0000-0000-000000000000';
 select is(
@@ -70,7 +78,7 @@ select throws_ok(
 
 -- Barbeiro da barbearia A
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000a002","role":"authenticated"}', true);
-select is((select count(*) from public.agendamentos)::int, 1, 'barbeiro A vê a agenda de A');
+select is((select count(*) from public.agendamentos)::int, 2, 'barbeiro A vê a agenda de A');
 update public.servicos set preco_centavos = 1 where barbearia_id = 'aaaaaaaa-0000-0000-0000-000000000000';
 select is(
   (select preco_centavos from public.servicos where id = '33333333-0000-0000-0000-00000000000a')::int,
@@ -82,6 +90,13 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 select is((select count(*) from public.agendamentos)::int, 1, 'cliente Y vê só o próprio agendamento');
 select is((select count(*) from public.membros)::int, 0, 'cliente não lê a tabela de membros');
 select is((select count(*) from public.clientes)::int, 1, 'cliente vê só o próprio cadastro');
+
+-- Cliente anônimo do cadastro leve: só o próprio agendamento, nunca o de outro anônimo.
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000d0001","role":"authenticated","is_anonymous":true}', true);
+select is((select count(*) from public.agendamentos)::int, 1, 'anônimo vê o próprio agendamento');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000d0002","role":"authenticated","is_anonymous":true}', true);
+select is((select count(*) from public.agendamentos)::int, 0, 'outro anônimo não vê o agendamento de ninguém');
+select is((select count(*) from public.clientes)::int, 1, 'anônimo vê só o próprio cadastro');
 
 -- Visitante sem login (página pública)
 reset role;

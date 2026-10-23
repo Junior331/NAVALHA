@@ -76,3 +76,9 @@ export {
   type Carteira,
   type DadosAtivacao,
 } from './casos/financeiro'
+export {
+  paginaDaBarbearia,
+  situacaoDoAgendamento,
+  type PaginaDaBarbearia,
+  type SituacaoDoAgendamento,
+} from './casos/vitrine'
