@@ -1,0 +1,24 @@
+{
+  "name": "@navalha/pagamentos",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contrato": "./src/contrato.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@navalha/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@navalha/config": "workspace:*",
+    "eslint": "^9.39.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.0"
+  }
+}
