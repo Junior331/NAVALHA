@@ -88,6 +88,8 @@ export interface PaymentProvider {
     walletId: string
     /** Chave de API da subconta. Guardar no Vault, nunca em tabela. */
     chaveApi: string
+    /** O KYC do gateway: em análise até aprovar os documentos (saques só depois). */
+    situacao: 'aprovada' | 'em_analise'
   }>
   habilitarEscrow(params: { subcontaId: string }): Promise<void>
   garantirCliente(params: {
@@ -125,12 +127,16 @@ export interface PaymentProvider {
   estornar(params: { subcontaId: string; cobrancaId: string; valor?: Centavos }): Promise<Cobranca>
   /** Libera o Escrow: o valor da barbearia fica disponível na subconta. Idempotente. */
   liberarRetencao(params: { subcontaId: string; cobrancaId: string }): Promise<Cobranca>
-  /** Pix enviado da subconta para a chave da Navalha (ajustes-taxas §Transferência). */
+  /**
+   * Pix enviado da subconta: a taxa para a chave da Navalha (ajustes-taxas §Transferência) ou o
+   * saque para a chave da própria barbearia.
+   */
   transferirPix(params: {
     subcontaId: string
     chavePix: string
     valor: Centavos
     referencia: string
+    descricao?: string
   }): Promise<{ transferenciaId: string }>
   consultarCobranca(params: { subcontaId: string; cobrancaId: string }): Promise<Cobranca>
 }

@@ -68,3 +68,11 @@ export {
   remarcarAgendamento,
   type EntradaBalcao,
 } from './casos/agenda'
+export {
+  ativarRecebimentos,
+  consultarCarteira,
+  definirAgendamentosOnline,
+  solicitarSaque,
+  type Carteira,
+  type DadosAtivacao,
+} from './casos/financeiro'

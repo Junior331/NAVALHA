@@ -98,3 +98,26 @@ export const esquemaBalcao = z.object({
   inicio: z.iso.datetime(),
   observacoes: z.string().trim().max(300).optional(),
 })
+
+export const esquemaAtivacao = z.object({
+  titular: z.object({
+    nome: z.string().trim().min(2).max(100),
+    email: z.email(),
+    cpfCnpj: z.string().regex(/^(\d{11}|\d{14})$/),
+    celular: digitos(10, 11),
+    faturamentoMensalCentavos: z.number().int().positive().max(10_000_000_000),
+    endereco: z.object({
+      logradouro: z.string().trim().min(2).max(120),
+      numero: z.string().trim().min(1).max(10),
+      bairro: z.string().trim().min(2).max(60),
+      cep: digitos(8),
+    }),
+  }),
+  chavePix: z.string().trim().min(5).max(77),
+})
+
+export const esquemaSaque = z.object({
+  valorCentavos: z.number().int().positive(),
+})
+
+export const esquemaAgendamentosOnline = z.object({ aceitar: z.boolean() })

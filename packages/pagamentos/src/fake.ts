@@ -59,15 +59,23 @@ export class FakePaymentProvider implements PaymentProvider {
     }
   }
 
-  async criarSubconta(
-    dados: DadosSubconta,
-  ): Promise<{ subcontaId: string; walletId: string; chaveApi: string }> {
+  async criarSubconta(dados: DadosSubconta): Promise<{
+    subcontaId: string
+    walletId: string
+    chaveApi: string
+    situacao: 'aprovada' | 'em_analise'
+  }> {
     if (!dados.cpfCnpj || !dados.email) {
       throw new ErroPagamento('dados_invalidos', 'CPF/CNPJ e e-mail são obrigatórios')
     }
     const subcontaId = this.novoId('acc')
     this.subcontas.set(subcontaId, { escrow: false, clientes: new Map() })
-    return { subcontaId, walletId: this.novoId('wal'), chaveApi: this.novoId('chave') }
+    return {
+      subcontaId,
+      walletId: this.novoId('wal'),
+      chaveApi: this.novoId('chave'),
+      situacao: 'aprovada',
+    }
   }
 
   async habilitarEscrow(params: { subcontaId: string }): Promise<void> {

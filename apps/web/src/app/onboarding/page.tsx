@@ -5,14 +5,17 @@ import { useEffect, useState } from 'react'
 import { Botao, BotaoLink, Campo, Cartao, Mensagem } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { api, ErroDaApi, supabaseNoNavegador } from '@/lib/supabase'
+import { FormularioDeRecebimentos } from '../painel/recebimentos/formulario'
 import s from './onboarding.module.css'
 
-// Figma Acessos · Onboarding do dono: 01 Equipe → 02 Serviços → 03 Horários → 04 Tudo pronto.
-type Etapa = 'equipe' | 'servicos' | 'horarios' | 'pronto'
+// Figma Acessos · Onboarding do dono: 01 Equipe → 02 Serviços → 03 Horários → Recebimentos (passo
+// novo, ajustes-taxas §Subconta) → 04 Tudo pronto.
+type Etapa = 'equipe' | 'servicos' | 'horarios' | 'recebimentos' | 'pronto'
 const ETAPAS: { id: Etapa; nome: string }[] = [
   { id: 'equipe', nome: 'Equipe' },
   { id: 'servicos', nome: 'Serviços' },
   { id: 'horarios', nome: 'Horários' },
+  { id: 'recebimentos', nome: 'Recebimentos' },
   { id: 'pronto', nome: 'Tudo pronto' },
 ]
 
@@ -35,6 +38,7 @@ interface Dono {
 export default function Onboarding() {
   const [etapa, setEtapa] = useState<Etapa>('equipe')
   const [dono, setDono] = useState<Dono | null>(null)
+  const [ativou, setAtivou] = useState(false)
   const supabase = supabaseNoNavegador()
 
   useEffect(() => {
@@ -76,9 +80,17 @@ export default function Onboarding() {
         ) : etapa === 'servicos' ? (
           <Servicos dono={dono} avancar={() => setEtapa('horarios')} />
         ) : etapa === 'horarios' ? (
-          <Horarios dono={dono} avancar={() => setEtapa('pronto')} />
+          <Horarios dono={dono} avancar={() => setEtapa('recebimentos')} />
+        ) : etapa === 'recebimentos' ? (
+          <Recebimentos
+            dono={dono}
+            avancar={(ativado) => {
+              setAtivou(ativado)
+              setEtapa('pronto')
+            }}
+          />
         ) : (
-          <Pronto />
+          <Pronto ativou={ativou} />
         )}
       </section>
     </main>
@@ -415,18 +427,40 @@ function Horarios({ dono, avancar }: { dono: Dono; avancar: () => void }) {
   )
 }
 
-function Pronto() {
+function Recebimentos({ dono, avancar }: { dono: Dono; avancar: (ativado: boolean) => void }) {
+  return (
+    <>
+      <h1>Ative os recebimentos</h1>
+      <p className={s.subtitulo}>
+        Para receber Pix e cartão dos agendamentos online, a Navalha abre uma conta de pagamentos no
+        Asaas em nome da barbearia. O valor fica retido até o atendimento e, depois, pode ser sacado
+        por Pix.
+      </p>
+      <FormularioDeRecebimentos barbeariaId={dono.barbeariaId} aoAtivar={() => avancar(true)} />
+      <div className={s.acoes}>
+        <Botao variante="fantasma" onClick={() => avancar(false)}>
+          Fazer depois
+        </Botao>
+      </div>
+    </>
+  )
+}
+
+function Pronto({ ativou }: { ativou: boolean }) {
   return (
     <>
       <h1>Tudo pronto</h1>
       <p className={s.subtitulo}>
-        Falta um passo para receber agendamentos online: ativar os recebimentos, com os dados
-        bancários da barbearia. Sem isso a página pública não aceita agendamentos pagos.
+        {ativou
+          ? 'Os recebimentos estão ativos: a sua página já aceita agendamentos pagos.'
+          : 'Falta um passo para receber agendamentos online: ativar os recebimentos. Até lá, a página pública não aceita agendamentos pagos.'}
       </p>
       <div className={s.acoes}>
-        <BotaoLink href="/painel/configuracoes" variante="secundario">
-          Ativar recebimentos
-        </BotaoLink>
+        {ativou ? null : (
+          <BotaoLink href="/painel/recebimentos" variante="secundario">
+            Ativar recebimentos
+          </BotaoLink>
+        )}
         <BotaoLink href="/painel">Ir para o painel</BotaoLink>
       </div>
     </>

@@ -206,3 +206,21 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.aviso {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 24px;
+  background: var(--alerta-suave);
+  color: var(--texto);
+  border-bottom: 1px solid var(--borda);
+  font-size: 14px;
+}
+
+.aviso a {
+  font-weight: 600;
+  color: var(--texto);
+}

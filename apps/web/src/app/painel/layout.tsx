@@ -15,12 +15,30 @@ export default async function LayoutDoPainel({ children }: { children: ReactNode
     .is('usado_em', null)
     .gt('expira_em', new Date().toISOString())
 
+  const aviso =
+    papel !== 'dono'
+      ? null
+      : !barbearia.recebimentos_ativos_em
+        ? {
+            texto: 'Ative os recebimentos para aceitar agendamentos pagos.',
+            href: '/painel/recebimentos',
+            acao: 'Ativar recebimentos',
+          }
+        : !barbearia.aceitar_agendamentos_online
+          ? {
+              texto: 'Reservas online pausadas: os clientes não conseguem agendar.',
+              href: '/painel/perfil',
+              acao: 'Retomar no Perfil',
+            }
+          : null
+
   return (
     <Casca
       barbearia={barbearia.nome}
       plano={`${NOME_DO_PLANO[assinatura?.plano ?? 'free'] ?? 'Free'}${assinatura?.status === 'trial' ? ' · teste grátis' : ''}`}
       usuario={{ nome: nomeUsuario, papel: papel === 'dono' ? 'Dono' : 'Barbeiro' }}
       pendencias={convitesPendentes ? { '/painel/barbeiros': convitesPendentes } : {}}
+      aviso={aviso}
     >
       {children}
     </Casca>

@@ -52,10 +52,12 @@ insert into public.assinaturas (barbearia_id, plano, ciclo, status) values
   ('ba7be000-0000-0000-0000-000000000001', 'pro', 'mensal', 'ativa');
 
 -- Subconta de mentira, para o FakePaymentProvider: a chave fica no Vault, como em produção.
-insert into public.subcontas_asaas (barbearia_id, asaas_conta_id, wallet_id, chave_api_secret_id, escrow_habilitado, status_kyc)
+insert into public.subcontas_asaas (barbearia_id, asaas_conta_id, wallet_id, chave_api_secret_id, escrow_habilitado, status_kyc,
+  chave_pix_saque)
 values (
   'ba7be000-0000-0000-0000-000000000001', 'sub_fake_ze', 'wallet_fake_ze',
-  vault.create_secret('chave-fake-local', 'asaas-subconta-barbearia-do-ze'), true, 'aprovado'
+  vault.create_secret('chave-fake-local', 'asaas-subconta-barbearia-do-ze'), true, 'aprovado',
+  'financeiro@barbeariadoze.com'
 );
 
 insert into public.horarios_barbearia (barbearia_id, dia_semana, abre, fecha) values
@@ -190,3 +192,144 @@ values ('ba7be000-0000-0000-0000-000000000001', 'a9e0000e-0000-0000-0000-0000000
 insert into public.avaliacoes (barbearia_id, agendamento_id, cliente_id, membro_id, nota, comentario) values
   ('ba7be000-0000-0000-0000-000000000001', 'a9e0000e-0000-0000-0000-000000000002', 'c11e0000-0000-0000-0000-000000000002',
    '3e3b0000-0000-0000-0000-000000000001', 5, 'Melhor corte que já fiz na região. O Zé não tem pressa e o resultado ficou impecável.');
+
+-- ── Histórico das últimas 4 semanas (Dashboard, Financeiro e Relatórios) ───────────────────
+-- Determinístico: os mesmos dias, horários e serviços a cada reset. Plano Pro: sem taxa Navalha
+-- no atendimento; no no-show a Navalha fica com 20% do retido menos G (regras-de-negocio).
+insert into public.clientes (id, nome, celular) values
+  ('c11e0000-0000-0000-0000-000000000003', 'Bruno Alves', '(11) 95555-1010'),
+  ('c11e0000-0000-0000-0000-000000000004', 'Davi Moreira', '(11) 95555-2020'),
+  ('c11e0000-0000-0000-0000-000000000005', 'Felipe Ramos', '(11) 95555-3030'),
+  ('c11e0000-0000-0000-0000-000000000006', 'Gustavo Lima', '(11) 95555-4040'),
+  ('c11e0000-0000-0000-0000-000000000007', 'Henrique Costa', '(11) 95555-5050'),
+  ('c11e0000-0000-0000-0000-000000000008', 'Igor Santos', '(11) 95555-6060'),
+  ('c11e0000-0000-0000-0000-000000000009', 'João Pedro Nunes', '(11) 95555-7070'),
+  ('c11e0000-0000-0000-0000-000000000010', 'Kaique Souza', '(11) 95555-8080');
+
+create temporary table historico as
+with dias as (
+  select d::date as dia, (row_number() over (order by d))::int as n
+  from generate_series(current_date - 28, current_date - 2, interval '1 day') as d
+  where extract(dow from d) <> 0
+), vagas as (
+  select dias.dia, dias.n, b.membro, b.ordem, h.hora, h.ordem as turno
+  from dias
+  cross join (values
+    ('3e3b0000-0000-0000-0000-000000000001'::uuid, 1),
+    ('3e3b0000-0000-0000-0000-000000000002'::uuid, 2),
+    ('3e3b0000-0000-0000-0000-000000000003'::uuid, 3)
+  ) as b(membro, ordem)
+  cross join (values (time '10:00', 1), (time '14:00', 2), (time '17:00', 3)) as h(hora, ordem)
+  where (dias.n + b.ordem + h.ordem) % 4 <> 0
+), escolhas as (
+  select v.*,
+    (case v.ordem
+      when 1 then (array['1', '2', '3', '5'])[1 + (v.n + v.turno) % 4]
+      when 2 then (array['1', '2', '4', '5'])[1 + (v.n + v.turno) % 4]
+      else (array['3', '5', '7'])[1 + (v.n + v.turno) % 3]
+    end) as servico_n,
+    1 + (v.n * 3 + v.ordem * 2 + v.turno) % 10 as cliente_n,
+    case when (v.n + v.turno) % 3 = 0 then 'cartao' else 'pix' end as meio_escolhido,
+    case
+      when (v.n + v.ordem + v.turno) % 17 = 0 then 'no_show'
+      when (v.n + v.ordem) % 19 = 0 then 'cancelado_pela_barbearia'
+      else 'concluido'
+    end as status,
+    case when (v.n + v.ordem) % 7 = 0 then 'balcao' when v.n % 5 = 0 then 'web' else 'app' end as origem
+  from vagas v
+)
+select gen_random_uuid() as id, e.membro, e.status, e.origem,
+  case when e.origem = 'balcao' then 'nenhum' else e.meio_escolhido end as meio,
+  ('c11e0000-0000-0000-0000-0000000000' || lpad(e.cliente_n::text, 2, '0'))::uuid as cliente,
+  s.id as servico, s.nome, s.duracao_min, s.preco_centavos::bigint as preco,
+  ((e.dia + e.hora) at time zone 'America/Sao_Paulo') as inicio,
+  case when e.meio_escolhido = 'cartao' and e.origem <> 'balcao'
+    then floor(s.preco_centavos * 0.0299)::bigint + 49 else 0 end as g,
+  (e.n + e.turno) % 4 as nota_extra
+from escolhas e
+join public.servicos s on s.id = ('5e7f0000-0000-0000-0000-00000000000' || e.servico_n)::uuid;
+
+insert into public.agendamentos (id, barbearia_id, cliente_id, barbeiro_id, inicio, fim, status,
+  valor_bruto_centavos, valor_pago_centavos, prazo_gratis_ate, tolerancia_ate, retencao_pct, plano,
+  origem, pago_no_balcao, iniciado_em, concluido_em, cancelado_em, motivo_cancelamento)
+select id, 'ba7be000-0000-0000-0000-000000000001', cliente, membro, inicio,
+  inicio + make_interval(mins => duracao_min), status::public.status_agendamento, preco, preco,
+  inicio - interval '2 hours', inicio + interval '15 minutes', 50, 'pro',
+  origem::public.origem_agendamento, origem = 'balcao',
+  case when status = 'concluido' then inicio + interval '3 minutes' end,
+  case when status = 'concluido' then inicio + make_interval(mins => duracao_min) end,
+  case when status = 'cancelado_pela_barbearia' then inicio - interval '1 day' end,
+  case when status = 'cancelado_pela_barbearia' then 'Barbeiro indisponível' end
+from historico;
+
+insert into public.agendamento_servicos (agendamento_id, servico_id, nome, duracao_min, preco_centavos)
+select id, servico, nome, duracao_min, preco from historico;
+
+insert into public.pagamentos (agendamento_id, barbearia_id, meio, status, valor_centavos,
+  taxa_gateway_centavos, valor_estornado_centavos, cartao_final, capturar_em)
+select id, 'ba7be000-0000-0000-0000-000000000001', meio::public.meio_pagamento,
+  (case
+    when meio = 'pix' and status = 'cancelado_pela_barbearia' then 'estornado'
+    when meio = 'pix' then 'pix_pago'
+    when status = 'cancelado_pela_barbearia' then 'pre_autorizacao_cancelada'
+    else 'capturado'
+  end)::public.status_pagamento,
+  preco,
+  case when status = 'cancelado_pela_barbearia' then 0 else g end,
+  case when status = 'cancelado_pela_barbearia' and meio = 'pix' then preco
+       when status = 'no_show' then preco / 2 else 0 end,
+  case when meio = 'cartao' then '4242' end,
+  case when meio = 'cartao' then inicio - interval '2 hours' end
+from historico
+where meio <> 'nenhum';
+
+-- Liquidação de cada evento final. No-show com 50% retido: 80% do retido para a barbearia e
+-- 20% para a Navalha, que paga o G. Cancelado pela barbearia: tudo volta para o cliente.
+insert into public.lancamentos (barbearia_id, agendamento_id, tipo, evento_final, valor_pago_centavos,
+  cliente_centavos, barbearia_centavos, navalha_centavos, taxa_gateway_centavos, quem_paga_gateway, criado_em)
+select 'ba7be000-0000-0000-0000-000000000001', id, 'liquidacao', status::public.evento_final,
+  case when meio = 'nenhum' then 0 else preco end,
+  case when meio = 'nenhum' then 0 when status = 'no_show' then preco / 2
+       when status = 'cancelado_pela_barbearia' then preco else 0 end,
+  case when meio = 'nenhum' then 0 when status = 'concluido' then preco - g
+       when status = 'no_show' then (preco / 2) * 8 / 10 else 0 end,
+  case when meio <> 'nenhum' and status = 'no_show'
+    then (preco / 2) - (preco / 2) * 8 / 10 - g else 0 end,
+  case when status = 'cancelado_pela_barbearia' then 0 else g end,
+  (case when g = 0 or status = 'cancelado_pela_barbearia' then 'ninguem'
+        when status = 'no_show' then 'navalha' else 'barbearia' end)::public.pagador_gateway,
+  inicio + make_interval(mins => duracao_min + 5)
+from historico;
+
+insert into public.taxas_a_transferir (barbearia_id, agendamento_id, valor_centavos, criado_em)
+select 'ba7be000-0000-0000-0000-000000000001', l.agendamento_id, l.navalha_centavos, l.criado_em
+from public.lancamentos l
+join historico h on h.id = l.agendamento_id
+where l.navalha_centavos <> 0;
+
+-- As taxas de mais de uma semana já foram no lote semanal; as recentes esperam o próximo.
+with lote as (
+  insert into public.lotes_semanais (barbearia_id, semana, valor_centavos, status, asaas_transferencia_id)
+  select 'ba7be000-0000-0000-0000-000000000001', date_trunc('week', current_date - 7)::date,
+    coalesce(sum(valor_centavos), 0), 'concluida', 'tra_seed_1'
+  from public.taxas_a_transferir
+  where barbearia_id = 'ba7be000-0000-0000-0000-000000000001' and criado_em < current_date - 7
+  returning id
+)
+update public.taxas_a_transferir t set lote_id = lote.id
+from lote
+where t.barbearia_id = 'ba7be000-0000-0000-0000-000000000001' and t.criado_em < current_date - 7;
+
+insert into public.saques (barbearia_id, valor_centavos, status, solicitado_por, asaas_transferencia_id, criado_em)
+values ('ba7be000-0000-0000-0000-000000000001', 150000, 'concluida',
+  '5eed0000-0000-0000-0000-000000000001', 'tra_seed_saque_1', now() - interval '6 days');
+
+insert into public.avaliacoes (barbearia_id, agendamento_id, cliente_id, membro_id, nota, comentario)
+select 'ba7be000-0000-0000-0000-000000000001', id, cliente, membro,
+  case when nota_extra = 0 then 4 else 5 end,
+  (array['Atendimento pontual e caprichado.', 'Voltarei com certeza.', null,
+    'Ambiente top e corte no capricho.'])[1 + nota_extra]
+from historico
+where status = 'concluido' and nota_extra <> 2;
+
+drop table historico;

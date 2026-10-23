@@ -55,9 +55,12 @@ export class AsaasProvider implements PaymentProvider {
     this.fetch = config.fetch ?? globalThis.fetch
   }
 
-  async criarSubconta(
-    dados: DadosSubconta,
-  ): Promise<{ subcontaId: string; walletId: string; chaveApi: string }> {
+  async criarSubconta(dados: DadosSubconta): Promise<{
+    subcontaId: string
+    walletId: string
+    chaveApi: string
+    situacao: 'aprovada' | 'em_analise'
+  }> {
     const conta = await this.chamar<{ id: string; walletId: string; apiKey: string }>(
       this.config.chavePrincipal,
       'POST',
@@ -74,7 +77,13 @@ export class AsaasProvider implements PaymentProvider {
         postalCode: dados.endereco.cep,
       },
     )
-    return { subcontaId: conta.id, walletId: conta.walletId, chaveApi: conta.apiKey }
+    // A conta nasce em análise; a aprovação chega depois, pelo webhook de status da conta.
+    return {
+      subcontaId: conta.id,
+      walletId: conta.walletId,
+      chaveApi: conta.apiKey,
+      situacao: 'em_analise',
+    }
   }
 
   // Validar no sandbox: configuração da Conta Escrow por subconta.
@@ -298,6 +307,7 @@ export class AsaasProvider implements PaymentProvider {
     chavePix: string
     valor: Centavos
     referencia: string
+    descricao?: string
   }): Promise<{ transferenciaId: string }> {
     validarValor(params.valor)
     const chave = await this.config.chaveDaSubconta(params.subcontaId)
@@ -306,7 +316,7 @@ export class AsaasProvider implements PaymentProvider {
       operationType: 'PIX',
       pixAddressKey: params.chavePix,
       pixAddressKeyType: tipoDaChavePix(params.chavePix),
-      description: 'Taxa Navalha',
+      description: params.descricao ?? 'Taxa Navalha',
       externalReference: params.referencia,
     })
     return { transferenciaId: transferencia.id }

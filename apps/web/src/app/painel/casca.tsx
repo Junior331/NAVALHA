@@ -45,12 +45,15 @@ export function Casca({
   plano,
   usuario,
   pendencias,
+  aviso,
   children,
 }: {
   barbearia: string
   plano: string
   usuario: { nome: string; papel: string }
   pendencias: Record<string, number>
+  /** Aviso fixo no topo (backlog Admin 09: "Reservas pausadas" em todo o painel). */
+  aviso: { texto: string; href: string; acao: string } | null
   children: ReactNode
 }) {
   const caminho = usePathname()
@@ -152,6 +155,12 @@ export function Casca({
             </span>
           </div>
         </header>
+        {aviso ? (
+          <div className={s.aviso} role="status">
+            <span>{aviso.texto}</span>
+            <Link href={aviso.href}>{aviso.acao}</Link>
+          </div>
+        ) : null}
         <main className={s.conteudo}>{children}</main>
       </div>
     </div>

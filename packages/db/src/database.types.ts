@@ -709,14 +709,14 @@ isOneToOne: false
                   ]
                 },"subcontas_asaas": {
                   Row: {
-                    "asaas_conta_id": string,"barbearia_id": string,"chave_api_secret_id": string,"criada_em": string,"escrow_habilitado": boolean,"status_kyc": string,"wallet_id": string
+                    "asaas_conta_id": string,"barbearia_id": string,"chave_api_secret_id": string,"chave_pix_saque": string | null,"criada_em": string,"escrow_habilitado": boolean,"status_kyc": string,"wallet_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "asaas_conta_id": string,"barbearia_id": string,"chave_api_secret_id": string,"criada_em"?: string,"escrow_habilitado"?: boolean,"status_kyc"?: string,"wallet_id": string
+                    "asaas_conta_id": string,"barbearia_id": string,"chave_api_secret_id": string,"chave_pix_saque"?: string | null,"criada_em"?: string,"escrow_habilitado"?: boolean,"status_kyc"?: string,"wallet_id": string
                   }
                   Update: {
-                    "asaas_conta_id"?: string,"barbearia_id"?: string,"chave_api_secret_id"?: string,"criada_em"?: string,"escrow_habilitado"?: boolean,"status_kyc"?: string,"wallet_id"?: string
+                    "asaas_conta_id"?: string,"barbearia_id"?: string,"chave_api_secret_id"?: string,"chave_pix_saque"?: string | null,"criada_em"?: string,"escrow_habilitado"?: boolean,"status_kyc"?: string,"wallet_id"?: string
                   }
                   Relationships: [
                     {
@@ -787,6 +787,9 @@ isOneToOne: false
                            },
 "eh_dono":
 { Args: { "alvo": string }; Returns: boolean
+                           },
+"eh_dono_da_pasta":
+{ Args: { "pasta": string }; Returns: boolean
                            },
 "membro_do_usuario":
 { Args: { "alvo": string }; Returns: string
