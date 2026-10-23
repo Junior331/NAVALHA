@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aplicarCupom, validarCupom, type Cupom } from './cupom'
+import { aplicarCupom, validarCupom, type Cupom, type MotivoCupomInvalido } from './cupom'
 
 // regras-de-negocio §Outras regras: cupom criado por cada barbearia e válido só nela; o desconto
 // sai do valor da barbearia. Backlog Admin 07: campo "Dias válidos" aplicado pelo sistema.
@@ -44,9 +44,12 @@ describe('validarCupom', () => {
     [{ servicoIds: ['corte'] }, 'servico_nao_abrangido'],
     [{ usosTotais: 100 }, 'esgotado'],
     [{ usosDoCliente: 1 }, 'ja_usado'],
-  ] as const)('recusa %o com motivo %s', (parcial, motivo) => {
-    expect(validar(parcial)).toEqual({ ok: false, motivo })
-  })
+  ] satisfies [Partial<Parameters<typeof validarCupom>[0]>, MotivoCupomInvalido][])(
+    'recusa %o com motivo %s',
+    (parcial, motivo) => {
+      expect(validar(parcial)).toEqual({ ok: false, motivo })
+    },
+  )
 
   it('sem limite de usos e sem restrição de dia, aceita qualquer dia', () => {
     const livre: Cupom = { ...fimDeSemana, limiteUsos: null, diasSemana: null }
