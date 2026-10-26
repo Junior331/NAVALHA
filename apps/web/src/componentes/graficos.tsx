@@ -69,7 +69,12 @@ export function GraficoDeColunas({
   return (
     <figure className={s.figura}>
       <div className={s.area}>
-        <svg viewBox={`0 0 ${largura} ${altura}`} role="group" aria-label={titulo} className={s.svg}>
+        <svg
+          viewBox={`0 0 ${largura} ${altura}`}
+          role="group"
+          aria-label={titulo}
+          className={s.svg}
+        >
           {marcas.map((m) => (
             <g key={m}>
               <line
