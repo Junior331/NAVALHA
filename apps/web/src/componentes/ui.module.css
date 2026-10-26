@@ -100,6 +100,40 @@
   background: var(--superficie);
 }
 
+/* Campo com prefixo ("R$", "navalha.app/", ícone): o prefixo fica dentro da borda. */
+.comPrefixo {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  border-radius: var(--raio-m);
+  border: 1px solid var(--borda-forte);
+  background: var(--superficie);
+}
+
+.comPrefixo:focus-within {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.comPrefixo .entrada {
+  border: 0;
+  min-height: 40px;
+  padding-left: 6px;
+  background: transparent;
+}
+
+.comPrefixo .entrada:focus-visible {
+  outline: none;
+}
+
+.prefixo {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 12px;
+  color: var(--texto-suave);
+  white-space: nowrap;
+}
+
 .entrada::placeholder {
   color: var(--texto-suave);
 }

@@ -1,4 +1,6 @@
 import { consultarCarteira } from '@navalha/servidor'
+import { redirect } from 'next/navigation'
+import { Paginacao, paginaDaUrl } from '@/componentes/paginacao'
 import { BotaoLink, Cartao, Mensagem, Vazio } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { dataCurta, hora, reais } from '@/lib/formato'
@@ -20,7 +22,10 @@ const EVENTO: Record<string, string> = {
   cancelado_pela_barbearia: 'Cancelado pela barbearia',
 }
 
-export default async function Financeiro() {
+const POR_PAGINA = 20
+
+export default async function Financeiro({ searchParams }: PageProps<'/painel/financeiro'>) {
+  const pagina = paginaDaUrl((await searchParams).pagina)
   const { supabase, barbearia, papel, usuarioId } = await barbeariaDoPainel()
   const fuso = barbearia.fuso
 
@@ -61,12 +66,27 @@ export default async function Financeiro() {
       .from('lancamentos')
       .select(
         'id, criado_em, evento_final, valor_pago_centavos, cliente_centavos, credito_cliente_centavos, barbearia_centavos, navalha_centavos, taxa_gateway_centavos, quem_paga_gateway, agendamentos(codigo, inicio, clientes(nome))',
+        { count: 'exact' },
       )
       .eq('barbearia_id', barbearia.id)
       .eq('tipo', 'liquidacao')
       .order('criado_em', { ascending: false })
-      .limit(50),
+      .order('id')
+      .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1),
   ])
+  // Página além do fim (link antigo, extrato que diminuiu): vai para a última. Fora do intervalo o
+  // banco responde sem o total, então ele é contado à parte.
+  if (pagina > 1 && !lancamentos.data?.length) {
+    const { count } = await supabase
+      .from('lancamentos')
+      .select('id', { count: 'exact', head: true })
+      .eq('barbearia_id', barbearia.id)
+      .eq('tipo', 'liquidacao')
+    const ultima = Math.max(1, Math.ceil((count ?? 0) / POR_PAGINA))
+    redirect(
+      ultima === 1 ? '/painel/financeiro#extrato' : `/painel/financeiro?pagina=${ultima}#extrato`,
+    )
+  }
 
   return (
     <>
@@ -121,7 +141,7 @@ export default async function Financeiro() {
         </Cartao>
       </div>
 
-      <section className={t.envoltorio} aria-labelledby="titulo-extrato" tabIndex={0}>
+      <section id="extrato" className={t.envoltorio} aria-labelledby="titulo-extrato" tabIndex={0}>
         <div className={t.ferramentas}>
           <div>
             <h2 id="titulo-extrato" style={{ fontSize: 16 }}>
@@ -194,6 +214,17 @@ export default async function Financeiro() {
               })}
             </tbody>
           </table>
+        ) : null}
+        {lancamentos.count ? (
+          <Paginacao
+            pagina={pagina}
+            porPagina={POR_PAGINA}
+            total={lancamentos.count}
+            endereco={(p) =>
+              p === 1 ? '/painel/financeiro#extrato' : `/painel/financeiro?pagina=${p}#extrato`
+            }
+            rotulo="extrato"
+          />
         ) : (
           <div style={{ padding: 16 }}>
             <Vazio titulo="Nada no extrato ainda">

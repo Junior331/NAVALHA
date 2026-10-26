@@ -3,7 +3,6 @@
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   overflow-x: auto;
-  overflow-y: hidden;
 }
 
 .ferramentas {
@@ -91,12 +90,45 @@
 
 .rodape {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
   font-size: 13px;
   color: var(--texto-suave);
   border-top: 1px solid var(--borda);
+}
+
+.paginas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagina {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-p);
+  background: var(--superficie);
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.pagina:hover {
+  background: var(--superficie-2);
+}
+
+.pagina[aria-disabled='true'] {
+  color: var(--texto-apagado);
+  box-shadow: none;
+  pointer-events: none;
 }
 
 .chave {

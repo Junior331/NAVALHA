@@ -14,6 +14,7 @@ import {
   type SelectHTMLAttributes,
 } from 'react'
 import { iniciais } from '@/lib/formato'
+import { aplicarMascara, posicaoDoCursor, TECLADO, type Mascara } from '@/lib/mascaras'
 import s from './ui.module.css'
 
 type Variante = 'primario' | 'secundario' | 'perigo' | 'perigoContorno' | 'fantasma'
@@ -61,22 +62,63 @@ export function BotaoLink({
 
 export const Campo = forwardRef<
   HTMLInputElement,
-  InputHTMLAttributes<HTMLInputElement> & { rotulo: string; ajuda?: string; erro?: string | null }
->(function Campo({ rotulo, ajuda, erro, id, className, ...props }, ref) {
+  InputHTMLAttributes<HTMLInputElement> & {
+    rotulo: string
+    ajuda?: string
+    erro?: string | null
+    /** Formata enquanto digita (R$, celular, CPF/CNPJ, CEP, cartão…). Ver lib/mascaras. */
+    mascara?: Mascara
+    /** Texto ou ícone fixo dentro do campo, à esquerda ("R$", "navalha.app/"). */
+    prefixo?: ReactNode
+  }
+>(function Campo(
+  { rotulo, ajuda, erro, id, className, mascara, prefixo, onChange, inputMode, ...props },
+  ref,
+) {
   const gerado = useId()
   const idCampo = id ?? gerado
   const idAjuda = `${idCampo}-ajuda`
+  const entrada = (
+    <input
+      ref={ref}
+      id={idCampo}
+      className={[s.entrada, className].filter(Boolean).join(' ')}
+      aria-invalid={erro ? true : undefined}
+      aria-describedby={ajuda || erro ? idAjuda : undefined}
+      inputMode={inputMode ?? (mascara ? TECLADO[mascara] : undefined)}
+      onChange={(e) => {
+        if (mascara) {
+          const alvo = e.target
+          const digitado = alvo.value
+          const formatado = aplicarMascara(mascara, digitado)
+          if (formatado !== digitado) {
+            const cursor = posicaoDoCursor(
+              digitado,
+              alvo.selectionStart ?? digitado.length,
+              formatado,
+            )
+            alvo.value = formatado
+            alvo.setSelectionRange(cursor, cursor)
+          }
+        }
+        onChange?.(e)
+      }}
+      {...props}
+    />
+  )
   return (
     <label className={s.campo} htmlFor={idCampo}>
       <span>{rotulo}</span>
-      <input
-        ref={ref}
-        id={idCampo}
-        className={[s.entrada, className].filter(Boolean).join(' ')}
-        aria-invalid={erro ? true : undefined}
-        aria-describedby={ajuda || erro ? idAjuda : undefined}
-        {...props}
-      />
+      {prefixo ? (
+        <span className={s.comPrefixo}>
+          <span className={s.prefixo} aria-hidden="true">
+            {prefixo}
+          </span>
+          {entrada}
+        </span>
+      ) : (
+        entrada
+      )}
       {erro ? (
         <span id={idAjuda} className={s.erroCampo}>
           {erro}

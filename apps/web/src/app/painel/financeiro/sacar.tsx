@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Botao, Campo, Mensagem, Modal } from '@/componentes/ui'
 import { reais } from '@/lib/formato'
 import { api, ErroDaApi } from '@/lib/supabase'
+import { centavosDe, reaisParaCampo } from '@/lib/mascaras'
 
 // Saque manual do disponível, mínimo de R$ 50 (regras-de-negocio §Decisões), por Pix para a
 // chave cadastrada na ativação dos recebimentos.
@@ -26,7 +27,7 @@ export function Sacar({
   const [enviando, setEnviando] = useState(false)
   const [feito, setFeito] = useState<number | null>(null)
 
-  const centavos = Math.round(Number(valor.replace(/\./g, '').replace(',', '.')) * 100) || 0
+  const centavos = centavosDe(valor)
   const motivo =
     centavos === 0
       ? null
@@ -100,6 +101,8 @@ export function Sacar({
           <>
             <Campo
               rotulo="Valor (R$)"
+              mascara="reais"
+              prefixo="R$"
               inputMode="decimal"
               placeholder="0,00"
               value={valor}
@@ -108,10 +111,7 @@ export function Sacar({
               ajuda={`Mínimo de ${reais(minimo)}. Cai na chave Pix cadastrada na ativação.`}
               autoFocus
             />
-            <Botao
-              variante="fantasma"
-              onClick={() => setValor((disponivel / 100).toFixed(2).replace('.', ','))}
-            >
+            <Botao variante="fantasma" onClick={() => setValor(reaisParaCampo(disponivel))}>
               Sacar tudo ({reais(disponivel)})
             </Botao>
             {erro ? <Mensagem tipo="erro">{erro}</Mensagem> : null}

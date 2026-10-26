@@ -655,6 +655,12 @@
   padding: 36px 40px 40px;
 }
 
+/* Quem rola é o conteúdo: as seções mantêm a altura delas (sem isso, uma seção com overflow
+   encolhe até caber na tela e corta o resto). A agenda é a exceção e ocupa a altura que sobra. */
+.conteudo > * {
+  flex-shrink: 0;
+}
+
 @media (max-width: 1023px) {
   .conteudo {
     padding: 24px 16px 32px;

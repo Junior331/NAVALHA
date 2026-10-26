@@ -283,7 +283,7 @@ export default function Pagina() {
           />
           <Campo
             rotulo="Telefone (WhatsApp)"
-            inputMode="tel"
+            mascara="celular"
             value={barbearia.whatsapp}
             onChange={(e) => setBarbearia({ ...barbearia, whatsapp: e.target.value })}
           />

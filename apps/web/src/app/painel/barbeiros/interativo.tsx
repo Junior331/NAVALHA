@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Botao, Campo, Mensagem, Modal } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { api, ErroDaApi } from '@/lib/supabase'
+import { contatoMascarado } from '@/lib/mascaras'
 import m from './menu.module.css'
 
 interface Convite {
@@ -160,7 +161,7 @@ export function ConvidarBarbeiro({
             <Campo
               rotulo="WhatsApp ou e-mail (opcional)"
               value={contato}
-              onChange={(e) => setContato(e.target.value)}
+              onChange={(e) => setContato(contatoMascarado(e.target.value))}
             />
             <div>
               <p className="rotulo" style={{ marginBottom: 8 }}>

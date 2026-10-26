@@ -1,4 +1,6 @@
 import { consultarCarteira } from '@navalha/servidor'
+import { redirect } from 'next/navigation'
+import { Paginacao, paginaDaUrl } from '@/componentes/paginacao'
 import { BotaoLink, Cartao, Etiqueta, Mensagem, Vazio } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { dataCurta, hora, reais } from '@/lib/formato'
@@ -17,7 +19,12 @@ const STATUS: Record<string, { rotulo: string; tom: 'sucesso' | 'alerta' | 'risc
   falhou: { rotulo: 'Falhou', tom: 'risco' },
 }
 
-export default async function Repasses() {
+const POR_PAGINA = 10
+
+export default async function Repasses({ searchParams }: PageProps<'/painel/financeiro/repasses'>) {
+  const parametros = await searchParams
+  const paginaSaques = paginaDaUrl(parametros.saques)
+  const paginaLotes = paginaDaUrl(parametros.lotes)
   const { supabase, barbearia, papel, usuarioId } = await barbeariaDoPainel()
   const fuso = barbearia.fuso
 
@@ -48,22 +55,27 @@ export default async function Repasses() {
     )
   }
 
-  const [carteira, saques, lotes] = await Promise.all([
+  const [carteira, saques, lotes, todosOsSaques] = await Promise.all([
     consultarCarteira(contexto(), { id: usuarioId, anonimo: false }, barbearia.id),
     supabase
       .from('saques')
-      .select('id, criado_em, valor_centavos, status')
+      .select('id, criado_em, valor_centavos, status', { count: 'exact' })
       .eq('barbearia_id', barbearia.id)
       .order('criado_em', { ascending: false })
-      .limit(50),
+      .order('id')
+      .range((paginaSaques - 1) * POR_PAGINA, paginaSaques * POR_PAGINA - 1),
     supabase
       .from('lotes_semanais')
-      .select('id, semana, valor_centavos, status')
+      .select('id, semana, valor_centavos, status', { count: 'exact' })
       .eq('barbearia_id', barbearia.id)
       .order('semana', { ascending: false })
-      .limit(26),
+      .range((paginaLotes - 1) * POR_PAGINA, paginaLotes * POR_PAGINA - 1),
+    supabase.from('saques').select('valor_centavos, status').eq('barbearia_id', barbearia.id),
   ])
-  const sacado = (saques.data ?? [])
+  // Página além do fim (link antigo): volta para a primeira daquela tabela.
+  if (paginaSaques > 1 && !saques.data?.length) redirect(endereco(1, paginaLotes))
+  if (paginaLotes > 1 && !lotes.data?.length) redirect(endereco(paginaSaques, 1))
+  const sacado = (todosOsSaques.data ?? [])
     .filter((q) => q.status !== 'falhou')
     .reduce((total, q) => total + q.valor_centavos, 0)
 
@@ -93,7 +105,7 @@ export default async function Repasses() {
         <Cartao className={c.bloco}>
           <span className={c.blocoRotulo}>Já sacado</span>
           <strong className={c.blocoValor}>{reais(sacado)}</strong>
-          <span className={c.blocoNota}>Soma dos últimos saques enviados ou em processamento.</span>
+          <span className={c.blocoNota}>Soma dos saques enviados ou em processamento.</span>
         </Cartao>
         <Cartao className={c.bloco}>
           <span className={c.blocoRotulo}>Taxas a transferir</span>
@@ -104,7 +116,7 @@ export default async function Repasses() {
         </Cartao>
       </div>
 
-      <section className={t.envoltorio} aria-labelledby="titulo-saques">
+      <section id="saques" className={t.envoltorio} aria-labelledby="titulo-saques">
         <div className={t.ferramentas}>
           <h2 id="titulo-saques" style={{ fontSize: 16 }}>
             Saques
@@ -143,9 +155,18 @@ export default async function Repasses() {
             <Vazio titulo="Nenhum saque ainda" />
           </div>
         )}
+        {saques.count ? (
+          <Paginacao
+            pagina={paginaSaques}
+            porPagina={POR_PAGINA}
+            total={saques.count}
+            endereco={(p) => `${endereco(p, paginaLotes)}#saques`}
+            rotulo="histórico de saques"
+          />
+        ) : null}
       </section>
 
-      <section className={t.envoltorio} aria-labelledby="titulo-lotes">
+      <section id="lotes" className={t.envoltorio} aria-labelledby="titulo-lotes">
         <div className={t.ferramentas}>
           <div>
             <h2 id="titulo-lotes" style={{ fontSize: 16 }}>
@@ -187,7 +208,23 @@ export default async function Repasses() {
             <Vazio titulo="Nenhum lote fechado ainda" />
           </div>
         )}
+        {lotes.count ? (
+          <Paginacao
+            pagina={paginaLotes}
+            porPagina={POR_PAGINA}
+            total={lotes.count}
+            endereco={(p) => `${endereco(paginaSaques, p)}#lotes`}
+            rotulo="histórico de lotes"
+          />
+        ) : null}
       </section>
     </>
   )
+}
+
+function endereco(saques: number, lotes: number): string {
+  const busca = new URLSearchParams()
+  if (saques > 1) busca.set('saques', String(saques))
+  if (lotes > 1) busca.set('lotes', String(lotes))
+  return `/painel/financeiro/repasses${busca.size ? `?${busca.toString()}` : ''}`
 }

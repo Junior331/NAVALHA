@@ -8,6 +8,7 @@ import { Botao, Campo, Etiqueta, Mensagem, Modal, Selecao, Vazio } from '@/compo
 import t from '@/componentes/tabela.module.css'
 import { minutosEmTexto, reais } from '@/lib/formato'
 import { supabaseNoNavegador } from '@/lib/supabase'
+import { centavosDe, reaisParaCampo } from '@/lib/mascaras'
 
 export interface LinhaServico {
   id: string
@@ -281,16 +282,14 @@ function FormularioDeServico({
   const [nome, setNome] = useState(servico?.nome ?? '')
   const [categoria, setCategoria] = useState(servico?.categoria ?? categorias[0] ?? 'Cabelo')
   const [duracao, setDuracao] = useState(String(servico?.duracao_min ?? 30))
-  const [preco, setPreco] = useState(
-    servico ? (servico.preco_centavos / 100).toFixed(2).replace('.', ',') : '',
-  )
+  const [preco, setPreco] = useState(servico ? reaisParaCampo(servico.preco_centavos) : '')
   const [tipoDesconto, setTipoDesconto] = useState<'nenhum' | 'percentual' | 'fixo'>(
     servico?.desconto_tipo ?? 'nenhum',
   )
   const [desconto, setDesconto] = useState(
     servico?.desconto_valor
       ? servico.desconto_tipo === 'fixo'
-        ? (servico.desconto_valor / 100).toFixed(2).replace('.', ',')
+        ? reaisParaCampo(servico.desconto_valor)
         : String(servico.desconto_valor)
       : '',
   )
@@ -299,11 +298,8 @@ function FormularioDeServico({
   const [erro, setErro] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
 
-  const precoCentavos = Math.round(Number(preco.replace(/\./g, '').replace(',', '.')) * 100)
-  const descontoNumero =
-    tipoDesconto === 'fixo'
-      ? Math.round(Number(desconto.replace(',', '.')) * 100)
-      : Math.round(Number(desconto.replace(',', '.')))
+  const precoCentavos = centavosDe(preco)
+  const descontoNumero = tipoDesconto === 'fixo' ? centavosDe(desconto) : Number(desconto) || 0
   const descontoValido =
     tipoDesconto === 'nenhum' ||
     (descontoNumero > 0 && (tipoDesconto === 'fixo' || descontoNumero <= 100))
@@ -406,13 +402,14 @@ function FormularioDeServico({
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Campo
           rotulo="Duração (min)"
-          inputMode="numeric"
+          mascara="inteiro"
           value={duracao}
-          onChange={(e) => setDuracao(e.target.value.replace(/\D/g, ''))}
+          onChange={(e) => setDuracao(e.target.value)}
         />
         <Campo
           rotulo="Preço (R$)"
-          inputMode="decimal"
+          mascara="reais"
+          prefixo="R$"
           value={preco}
           onChange={(e) => setPreco(e.target.value)}
         />
@@ -428,8 +425,10 @@ function FormularioDeServico({
           <option value="fixo">Valor fixo (R$)</option>
         </Selecao>
         <Campo
+          key={tipoDesconto}
           rotulo={tipoDesconto === 'fixo' ? 'Valor (R$)' : 'Percentual'}
-          inputMode="decimal"
+          mascara={tipoDesconto === 'fixo' ? 'reais' : 'percentual'}
+          prefixo={tipoDesconto === 'fixo' ? 'R$' : '%'}
           disabled={tipoDesconto === 'nenhum'}
           value={desconto}
           onChange={(e) => setDesconto(e.target.value)}

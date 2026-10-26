@@ -553,6 +553,7 @@ export function FluxoDeAgendamento({
             />
             <Campo
               rotulo="Celular (WhatsApp)"
+              mascara="celular"
               inputMode="tel"
               autoComplete="tel"
               value={celular}
@@ -695,6 +696,7 @@ export function FluxoDeAgendamento({
               <div className={f.cartao}>
                 <Campo
                   rotulo="Número do cartão"
+                  mascara="cartao"
                   inputMode="numeric"
                   autoComplete="cc-number"
                   value={cartao.numero}
@@ -711,6 +713,7 @@ export function FluxoDeAgendamento({
                 <div className={f.linha}>
                   <Campo
                     rotulo="Validade (MM/AA)"
+                    mascara="validade"
                     inputMode="numeric"
                     autoComplete="cc-exp"
                     value={cartao.validade}
@@ -719,6 +722,7 @@ export function FluxoDeAgendamento({
                   />
                   <Campo
                     rotulo="CVV"
+                    mascara="cvv"
                     inputMode="numeric"
                     autoComplete="cc-csc"
                     value={cartao.cvv}
@@ -729,6 +733,7 @@ export function FluxoDeAgendamento({
                 <div className={f.linha}>
                   <Campo
                     rotulo="CPF do titular"
+                    mascara="cpfCnpj"
                     inputMode="numeric"
                     value={cartao.cpf}
                     onChange={(e) => setCartao({ ...cartao, cpf: e.target.value })}
@@ -736,6 +741,7 @@ export function FluxoDeAgendamento({
                   />
                   <Campo
                     rotulo="CEP do titular"
+                    mascara="cep"
                     inputMode="numeric"
                     autoComplete="postal-code"
                     value={cartao.cep}

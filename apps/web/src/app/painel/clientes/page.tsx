@@ -1,5 +1,6 @@
 import { partesLocais } from '@navalha/core'
 import Link from 'next/link'
+import { Paginacao, paginaDaUrl } from '@/componentes/paginacao'
 import { Avatar, Vazio } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { linkDoWhatsapp } from '@/lib/agenda'
@@ -24,9 +25,11 @@ interface Resumo {
 
 const semAcento = (texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 
+const POR_PAGINA = 25
+
 export default async function Clientes({ searchParams }: PageProps<'/painel/clientes'>) {
-  const { q } = await searchParams
-  const termo = typeof q === 'string' ? q.trim() : ''
+  const parametros = await searchParams
+  const termo = typeof parametros.q === 'string' ? parametros.q.trim() : ''
   const { supabase, barbearia } = await barbeariaDoPainel()
   const fuso = barbearia.fuso
   const agora = new Date()
@@ -79,6 +82,17 @@ export default async function Clientes({ searchParams }: PageProps<'/painel/clie
       (a, b) =>
         (b.proximo ? 1 : 0) - (a.proximo ? 1 : 0) || (b.ultimo ?? '').localeCompare(a.ultimo ?? ''),
     )
+  const pagina = Math.min(
+    paginaDaUrl(parametros.pagina),
+    Math.max(1, Math.ceil(clientes.length / POR_PAGINA)),
+  )
+  const daPagina = clientes.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
+  const endereco = (p: number) => {
+    const busca = new URLSearchParams()
+    if (termo) busca.set('q', termo)
+    if (p > 1) busca.set('pagina', String(p))
+    return `/painel/clientes${busca.size ? `?${busca.toString()}` : ''}`
+  }
 
   return (
     <>
@@ -136,7 +150,7 @@ export default async function Clientes({ searchParams }: PageProps<'/painel/clie
               </tr>
             </thead>
             <tbody>
-              {clientes.map((c) => {
+              {daPagina.map((c) => {
                 const whatsapp = linkDoWhatsapp(
                   c.celular,
                   `Olá, ${c.nome.split(' ')[0]}! Aqui é da ${barbearia.nome}.`,
@@ -181,6 +195,15 @@ export default async function Clientes({ searchParams }: PageProps<'/painel/clie
             </tbody>
           </table>
         )}
+        {clientes.length > 0 ? (
+          <Paginacao
+            pagina={pagina}
+            porPagina={POR_PAGINA}
+            total={clientes.length}
+            endereco={endereco}
+            rotulo="cadastro de clientes"
+          />
+        ) : null}
       </section>
     </>
   )

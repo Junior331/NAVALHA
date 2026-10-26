@@ -6,6 +6,7 @@ import { Logo } from '@/componentes/logo'
 import { Botao, BotaoLink, Campo, Cartao, Mensagem } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { api, ErroDaApi, supabaseNoNavegador } from '@/lib/supabase'
+import { centavosDe, contatoMascarado, mascararReais, soDigitos } from '@/lib/mascaras'
 import { FormularioDeRecebimentos } from '../painel/recebimentos/formulario'
 import s from './onboarding.module.css'
 
@@ -22,11 +23,11 @@ const ETAPAS: { id: Etapa; nome: string }[] = [
 
 // Modelo do Onboarding 02 (o dono ajusta antes de salvar).
 const MODELO = [
-  { nome: 'Corte masculino', categoria: 'Cabelo', duracao: 30, preco: 45 },
-  { nome: 'Barba', categoria: 'Barba', duracao: 20, preco: 30 },
-  { nome: 'Corte + barba', categoria: 'Combo', duracao: 50, preco: 70 },
-  { nome: 'Sobrancelha', categoria: 'Estética', duracao: 10, preco: 15 },
-  { nome: 'Pigmentação', categoria: 'Química', duracao: 40, preco: 60 },
+  { nome: 'Corte masculino', categoria: 'Cabelo', duracao: 30, preco: '45' },
+  { nome: 'Barba', categoria: 'Barba', duracao: 20, preco: '30' },
+  { nome: 'Corte + barba', categoria: 'Combo', duracao: 50, preco: '70' },
+  { nome: 'Sobrancelha', categoria: 'Estética', duracao: 10, preco: '15' },
+  { nome: 'Pigmentação', categoria: 'Química', duracao: 40, preco: '60' },
 ]
 
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -128,7 +129,7 @@ function Equipe({ dono, avancar }: { dono: Dono; avancar: () => void }) {
         <Campo
           rotulo="E-mail ou WhatsApp (opcional)"
           value={contato}
-          onChange={(e) => setContato(e.target.value)}
+          onChange={(e) => setContato(contatoMascarado(e.target.value))}
         />
         <Botao variante="secundario" onClick={convidar} disabled={nome.trim().length < 2}>
           Gerar convite
@@ -182,7 +183,7 @@ function Servicos({ dono, avancar }: { dono: Dono; avancar: () => void }) {
             nome: l.nome.trim(),
             categoria: l.categoria,
             duracao_min: l.duracao,
-            preco_centavos: Math.round(l.preco * 100),
+            preco_centavos: centavosDe(l.preco),
             ordem: i + 1,
           })),
         )
@@ -252,9 +253,9 @@ function Servicos({ dono, avancar }: { dono: Dono; avancar: () => void }) {
                     className={t.busca}
                     style={{ minWidth: 80 }}
                     inputMode="numeric"
-                    value={l.duracao}
+                    value={l.duracao || ''}
                     onChange={(e) =>
-                      atualizar(i, 'duracao', Number(e.target.value.replace(/\D/g, '')) || 0)
+                      atualizar(i, 'duracao', Number(soDigitos(e.target.value)) || 0)
                     }
                     aria-label="Duração em minutos"
                   />
@@ -265,9 +266,7 @@ function Servicos({ dono, avancar }: { dono: Dono; avancar: () => void }) {
                     style={{ minWidth: 80 }}
                     inputMode="decimal"
                     value={l.preco}
-                    onChange={(e) =>
-                      atualizar(i, 'preco', Number(e.target.value.replace(',', '.')) || 0)
-                    }
+                    onChange={(e) => atualizar(i, 'preco', mascararReais(e.target.value))}
                     aria-label="Preço em reais"
                   />
                 </td>
@@ -281,7 +280,7 @@ function Servicos({ dono, avancar }: { dono: Dono; avancar: () => void }) {
         onClick={() =>
           setLinhas([
             ...linhas,
-            { nome: '', categoria: 'Cabelo', duracao: 30, preco: 0, marcado: true },
+            { nome: '', categoria: 'Cabelo', duracao: 30, preco: '', marcado: true },
           ])
         }
       >

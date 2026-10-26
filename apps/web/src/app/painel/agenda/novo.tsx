@@ -200,6 +200,7 @@ export function NovoAgendamento({
         />
         <Campo
           rotulo="Celular (opcional)"
+          mascara="celular"
           inputMode="tel"
           value={celular}
           onChange={(e) => setCelular(e.target.value)}

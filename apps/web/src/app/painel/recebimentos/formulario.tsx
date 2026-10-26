@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { Botao, Campo, Mensagem } from '@/componentes/ui'
 import { api, ErroDaApi } from '@/lib/supabase'
+import { centavosDe } from '@/lib/mascaras'
 import c from '../conta.module.css'
 
 // Ativar recebimentos (ajustes-taxas §Subconta): os dados do titular criam a conta de pagamentos
@@ -40,7 +41,7 @@ export function FormularioDeRecebimentos({
     documento: doc.length === 11 || doc.length === 14 ? null : 'CPF com 11 ou CNPJ com 14 números',
     email: /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? null : 'E-mail inválido',
     celular: [10, 11].includes(soDigitos(celular).length) ? null : 'Celular com DDD',
-    faturamento: Number(faturamento.replace(',', '.')) > 0 ? null : 'Informe uma estimativa',
+    faturamento: centavosDe(faturamento) > 0 ? null : 'Informe uma estimativa',
     cep: soDigitos(cep).length === 8 ? null : 'CEP com 8 números',
     rua: rua.trim().length >= 2 ? null : 'Informe a rua',
     numero: numero.trim() ? null : 'Informe o número',
@@ -65,7 +66,7 @@ export function FormularioDeRecebimentos({
               email: email.trim(),
               cpfCnpj: doc,
               celular: soDigitos(celular),
-              faturamentoMensalCentavos: Math.round(Number(faturamento.replace(',', '.')) * 100),
+              faturamentoMensalCentavos: centavosDe(faturamento),
               endereco: {
                 logradouro: rua.trim(),
                 numero: numero.trim(),
@@ -99,7 +100,7 @@ export function FormularioDeRecebimentos({
           />
           <Campo
             rotulo="CPF ou CNPJ"
-            inputMode="numeric"
+            mascara="cpfCnpj"
             value={documento}
             onChange={(e) => setDocumento(e.target.value)}
             erro={mostrar('documento')}
@@ -116,7 +117,7 @@ export function FormularioDeRecebimentos({
           />
           <Campo
             rotulo="Celular"
-            inputMode="tel"
+            mascara="celular"
             value={celular}
             onChange={(e) => setCelular(e.target.value)}
             autoComplete="tel"
@@ -125,7 +126,8 @@ export function FormularioDeRecebimentos({
         </div>
         <Campo
           rotulo="Faturamento mensal estimado (R$)"
-          inputMode="decimal"
+          mascara="reais"
+          prefixo="R$"
           value={faturamento}
           onChange={(e) => setFaturamento(e.target.value)}
           ajuda="O Asaas pede essa estimativa na análise da conta."
@@ -138,7 +140,7 @@ export function FormularioDeRecebimentos({
         <div className={c.linha}>
           <Campo
             rotulo="CEP"
-            inputMode="numeric"
+            mascara="cep"
             value={cep}
             onChange={(e) => setCep(e.target.value)}
             autoComplete="postal-code"

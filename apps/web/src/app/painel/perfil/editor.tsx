@@ -271,8 +271,8 @@ export function EditorDoPerfil({
             </span>
           </label>
           <div className={c.linha}>
-            <Campo rotulo="Telefone" inputMode="tel" {...campo('telefone')} />
-            <Campo rotulo="WhatsApp" inputMode="tel" {...campo('whatsapp')} />
+            <Campo rotulo="Telefone" mascara="celular" {...campo('telefone')} />
+            <Campo rotulo="WhatsApp" mascara="celular" {...campo('whatsapp')} />
             <Campo rotulo="Instagram" placeholder="@barbearia" {...campo('instagram')} />
           </div>
           <div className={c.linha}>

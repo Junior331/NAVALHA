@@ -1,3 +1,4 @@
+import { Paginacao, paginaDaUrl } from '@/componentes/paginacao'
 import { Etiqueta, Vazio, type Tom } from '@/componentes/ui'
 import t from '@/componentes/tabela.module.css'
 import { dataCurta } from '@/lib/formato'
@@ -16,7 +17,10 @@ const STATUS: Record<StatusDaPromocao, { rotulo: string; tom: Tom }> = {
   encerrada: { rotulo: 'Encerrada', tom: 'neutro' },
 }
 
-export default async function Promocoes() {
+const POR_PAGINA = 10
+
+export default async function Promocoes({ searchParams }: PageProps<'/painel/promocoes'>) {
+  const paginaPedida = paginaDaUrl((await searchParams).pagina)
   const { supabase, barbearia, papel } = await barbeariaDoPainel()
   const fuso = barbearia.fuso
   const [promocoes, servicos, usos] = await Promise.all([
@@ -59,6 +63,8 @@ export default async function Promocoes() {
     ativa: p.ativa,
   }))
   const dono = papel === 'dono'
+  const pagina = Math.min(paginaPedida, Math.max(1, Math.ceil(lista.length / POR_PAGINA)))
+  const daPagina = lista.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
   const ativas = lista.filter(
     (p) =>
       statusDaPromocao({ ...p, inicio: new Date(p.inicio), fim: new Date(p.fim) }, agora) ===
@@ -103,7 +109,7 @@ export default async function Promocoes() {
               </tr>
             </thead>
             <tbody>
-              {lista.map((p) => {
+              {daPagina.map((p) => {
                 const status = statusDaPromocao(
                   { ativa: p.ativa, inicio: new Date(p.inicio), fim: new Date(p.fim) },
                   agora,
@@ -168,6 +174,13 @@ export default async function Promocoes() {
               })}
             </tbody>
           </table>
+          <Paginacao
+            pagina={pagina}
+            porPagina={POR_PAGINA}
+            total={lista.length}
+            endereco={(p) => (p === 1 ? '/painel/promocoes' : `/painel/promocoes?pagina=${p}`)}
+            rotulo="cadastro de promoções"
+          />
         </div>
       )}
     </>

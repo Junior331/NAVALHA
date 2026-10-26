@@ -8,6 +8,7 @@ import { Botao, Campo, Mensagem, Modal } from '@/componentes/ui'
 import { somarDias } from '@/lib/agenda'
 import { descreverPromocao, textoDoDesconto } from '@/lib/promocao'
 import { supabaseNoNavegador } from '@/lib/supabase'
+import { reaisParaCampo } from '@/lib/mascaras'
 import s from './promocoes.module.css'
 
 export interface PromocaoDoPainel {
@@ -63,7 +64,7 @@ export function EditorDePromocao({
     promocao
       ? promocao.desconto.tipo === 'percentual'
         ? String(promocao.desconto.pct)
-        : (promocao.desconto.valor / 100).toFixed(2).replace('.', ',')
+        : reaisParaCampo(promocao.desconto.valor)
       : '10',
   )
   const [todos, setTodos] = useState(!promocao?.servicoIds)
@@ -246,8 +247,10 @@ export function EditorDePromocao({
               </label>
             </fieldset>
             <Campo
+              key={tipoDesconto}
               rotulo={tipoDesconto === 'percentual' ? 'Desconto (%)' : 'Desconto (R$)'}
-              inputMode="decimal"
+              mascara={tipoDesconto === 'percentual' ? 'percentual' : 'reais'}
+              prefixo={tipoDesconto === 'percentual' ? '%' : 'R$'}
               value={valor}
               onChange={(e) => setValor(e.target.value)}
             />
@@ -317,9 +320,9 @@ export function EditorDePromocao({
           <div className={s.linha}>
             <Campo
               rotulo="Limite de usos (opcional)"
-              inputMode="numeric"
+              mascara="inteiro"
               value={limite}
-              onChange={(e) => setLimite(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => setLimite(e.target.value)}
             />
             <label className={s.opcao} style={{ alignSelf: 'end', paddingBottom: 10 }}>
               <input type="checkbox" checked={umUso} onChange={(e) => setUmUso(e.target.checked)} />
