@@ -222,6 +222,12 @@
   letter-spacing: 0.02em;
 }
 
+.avatarEscuro {
+  background: var(--primario);
+  border-color: var(--primario);
+  color: var(--primario-texto);
+}
+
 .mensagem {
   padding: 12px 14px;
   border-radius: var(--raio-m);
@@ -311,4 +317,54 @@
   padding: 40px 16px;
   text-align: center;
   color: var(--texto-suave);
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  width: min(380px, calc(100vw - 32px));
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+
+.toastIcone {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--sucesso-suave);
+  color: var(--sucesso);
+}
+
+.toastTexto {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.toastTexto strong {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--texto);
+}
+
+.toastFechar {
+  flex: none;
+  border: 0;
+  background: none;
+  color: var(--texto-suave);
+  cursor: pointer;
 }

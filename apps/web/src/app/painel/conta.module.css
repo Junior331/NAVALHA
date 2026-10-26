@@ -192,7 +192,7 @@
 }
 
 .chave[aria-checked='true'] {
-  background: var(--sucesso);
+  background: var(--primario);
 }
 
 .chave[aria-checked='true']::after {

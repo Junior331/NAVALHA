@@ -2,10 +2,17 @@ import 'server-only'
 import { instanteLocal, partesLocais, type StatusAgendamento } from '@navalha/core'
 import { somarDias } from '@/lib/agenda'
 import { barbeariaDoPainel } from '@/lib/painel'
-import type { AtendimentoDoRelatorio } from '@/lib/relatorio'
+import {
+  periodoDoRelatorio,
+  type AtendimentoDoRelatorio,
+  type EstadoDoRelatorio,
+  type FiltroDoRelatorio,
+  type Pagamento,
+} from '@/lib/relatorio'
 
 // Dados do relatório (página e CSV usam a mesma consulta e os mesmos filtros).
-// ?de=YYYY-MM-DD&ate=YYYY-MM-DD&barbeiro=id&servicos=id1,id2
+// ?periodo=hoje|semana|mes|trimestre|ano  ou  ?de=YYYY-MM-DD&ate=YYYY-MM-DD
+// &barbeiros=ids&servicos=ids&pagamentos=pix,cartao,balcao&comparar=0&visao=barbeiro|servico|dia
 
 type Parametros = Record<string, string | string[] | undefined>
 
@@ -17,6 +24,8 @@ const STATUS_DO_RELATORIO: StatusAgendamento[] = [
   'cancelado_pela_barbearia',
 ]
 
+const PAGAMENTOS: Pagamento[] = ['pix', 'cartao', 'balcao']
+
 export async function dadosDoRelatorio(parametros: Parametros) {
   const { supabase, barbearia, papel } = await barbeariaDoPainel()
   const fuso = barbearia.fuso
@@ -25,11 +34,20 @@ export async function dadosDoRelatorio(parametros: Parametros) {
     const valor = parametros[chave]
     return typeof valor === 'string' ? valor : undefined
   }
-  const data = (valor?: string) => (valor && /^\d{4}-\d{2}-\d{2}$/.test(valor) ? valor : undefined)
-  const ate = data(texto('ate')) ?? hoje
-  const de = data(texto('de')) ?? somarDias(ate, -29)
-  const barbeiroId = texto('barbeiro') || undefined
-  const servicoIds = (texto('servicos') ?? '').split(',').filter(Boolean)
+  const lista = (chave: string) => (texto(chave) ?? '').split(',').filter(Boolean)
+  const periodo = periodoDoRelatorio(
+    { periodo: texto('periodo'), de: texto('de'), ate: texto('ate') },
+    hoje,
+  )
+  const filtro: Required<FiltroDoRelatorio> = {
+    barbeiroIds: lista('barbeiros'),
+    servicoIds: lista('servicos'),
+    pagamentos: lista('pagamentos').filter((p): p is Pagamento =>
+      PAGAMENTOS.includes(p as Pagamento),
+    ),
+  }
+  const visao: EstadoDoRelatorio['visao'] =
+    (['servico', 'dia'] as const).find((v) => v === texto('visao')) ?? 'barbeiro'
 
   const [membros, perfis, servicos, agendamentos] = await Promise.all([
     supabase.from('membros').select('id, papel').eq('barbearia_id', barbearia.id),
@@ -45,11 +63,11 @@ export async function dadosDoRelatorio(parametros: Parametros) {
     supabase
       .from('agendamentos')
       .select(
-        'id, codigo, inicio, status, barbeiro_id, valor_pago_centavos, origem, clientes(nome), agendamento_servicos(servico_id, nome, preco_centavos)',
+        'id, codigo, inicio, status, barbeiro_id, valor_pago_centavos, origem, pago_no_balcao, clientes(nome), agendamento_servicos(servico_id, nome, preco_centavos), pagamentos(meio)',
       )
       .eq('barbearia_id', barbearia.id)
-      .gte('inicio', instanteLocal(de, 0, fuso).toISOString())
-      .lt('inicio', instanteLocal(somarDias(ate, 1), 0, fuso).toISOString())
+      .gte('inicio', instanteLocal(periodo.anterior.de, 0, fuso).toISOString())
+      .lt('inicio', instanteLocal(somarDias(periodo.ate, 1), 0, fuso).toISOString())
       .in('status', STATUS_DO_RELATORIO)
       .order('inicio'),
   ])
@@ -58,37 +76,51 @@ export async function dadosDoRelatorio(parametros: Parametros) {
   const barbeiros = (membros.data ?? []).map((m) => ({
     id: m.id,
     nome: nomes.get(m.id) ?? (m.papel === 'dono' ? 'Dono' : 'Barbeiro'),
+    papel: m.papel === 'dono' ? 'Dono' : 'Barbeiro',
   }))
-  const lista = (agendamentos.data ?? []).map((a) => ({
-    id: a.id,
-    codigo: a.codigo,
-    inicio: a.inicio,
-    status: a.status as StatusAgendamento,
-    barbeiroId: a.barbeiro_id,
-    valorPagoCentavos: a.valor_pago_centavos,
-    origem: a.origem,
-    cliente: a.clientes?.nome ?? 'Cliente',
-    servicos: a.agendamento_servicos.map((s) => ({
-      servicoId: s.servico_id,
-      nome: s.nome,
-      precoCentavos: s.preco_centavos,
-    })),
-  }))
-  const atendimentos: AtendimentoDoRelatorio[] = lista.map((a) => ({
-    data: partesLocais(new Date(a.inicio), fuso).data,
-    status: a.status,
-    barbeiroId: a.barbeiroId,
-    servicos: a.servicos,
-  }))
+  const todos = (agendamentos.data ?? []).map((a) => {
+    const pagamento = Array.isArray(a.pagamentos) ? a.pagamentos[0] : a.pagamentos
+    return {
+      id: a.id,
+      codigo: a.codigo,
+      inicio: a.inicio,
+      data: partesLocais(new Date(a.inicio), fuso).data,
+      status: a.status as StatusAgendamento,
+      barbeiroId: a.barbeiro_id,
+      origem: a.origem,
+      pagamento: (a.pago_no_balcao ? 'balcao' : (pagamento?.meio ?? null)) as Pagamento | null,
+      cliente: a.clientes?.nome ?? 'Cliente',
+      servicos: a.agendamento_servicos.map((s) => ({
+        servicoId: s.servico_id,
+        nome: s.nome,
+        precoCentavos: s.preco_centavos,
+      })),
+    }
+  })
+  const paraResumo = (de: string, ate: string): AtendimentoDoRelatorio[] =>
+    todos
+      .filter((a) => a.data >= de && a.data <= ate)
+      .map((a) => ({
+        data: a.data,
+        status: a.status,
+        barbeiroId: a.barbeiroId,
+        pagamento: a.pagamento,
+        servicos: a.servicos,
+      }))
 
   return {
     barbearia,
     papel,
     hoje,
-    filtros: { de, ate, ...(barbeiroId ? { barbeiroId } : {}), servicoIds },
+    periodo,
+    filtro,
+    visao,
+    comparar: texto('comparar') !== '0',
     barbeiros,
     servicos: servicos.data ?? [],
-    lista,
-    atendimentos,
+    /** Atendimentos do período escolhido (para o CSV detalhado). */
+    lista: todos.filter((a) => a.data >= periodo.de && a.data <= periodo.ate),
+    atendimentos: paraResumo(periodo.de, periodo.ate),
+    anteriores: paraResumo(periodo.anterior.de, periodo.anterior.ate),
   }
 }

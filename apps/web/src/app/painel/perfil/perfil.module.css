@@ -1,0 +1,424 @@
+/* Perfil da barbearia (Figma Admin 09): formulário à esquerda, prévia no app à direita. */
+
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.colunas {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (min-width: 1100px) {
+  .colunas {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 396px);
+  }
+}
+
+.coluna {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.cartao {
+  display: grid;
+  gap: 16px;
+}
+
+.titulo {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.subtitulo {
+  margin-top: -10px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.botaoLink {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-m);
+  background: var(--superficie);
+  box-shadow: var(--sombra-leve);
+  color: var(--texto);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.botaoLink:hover {
+  background: var(--superficie-2);
+}
+
+/* Identidade visual */
+
+.capa {
+  min-height: 130px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 20px;
+  border: 1.5px dashed var(--borda-forte);
+  border-radius: var(--raio);
+  background: var(--superficie-2) center / cover no-repeat;
+  color: var(--texto-suave);
+  font-size: 13px;
+  text-align: center;
+}
+
+.capa[data-com-imagem] {
+  min-height: 160px;
+  border-style: solid;
+  border-color: var(--borda);
+  align-content: end;
+  justify-items: end;
+}
+
+.linhaLogo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--borda);
+  background: var(--superficie-2) center / cover no-repeat;
+  color: var(--texto);
+  font-weight: 500;
+}
+
+.logoGrande {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  font-size: 20px;
+}
+
+.textoLogo {
+  flex: 1;
+  min-width: 180px;
+  display: grid;
+  gap: 2px;
+}
+
+.textoLogo strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.textoLogo span {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Dados públicos */
+
+.campos {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.largo {
+  grid-column: 1 / -1;
+}
+
+.linhaEndereco {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+@media (min-width: 720px) {
+  .linhaEndereco {
+    grid-template-columns: 1.6fr 1fr;
+  }
+}
+
+.areaTexto {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.areaTexto textarea {
+  min-height: 88px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio-m);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.rotuloComContador {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.contador {
+  font-family: var(--fonte-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--texto-suave);
+}
+
+/* Prévia no app do cliente */
+
+.rotuloPrevia {
+  margin-bottom: 12px;
+  font-weight: 400;
+}
+
+.previa {
+  overflow: hidden;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+.previaCapa {
+  height: 120px;
+  background: linear-gradient(180deg, var(--borda) 0%, var(--superficie-2) 100%) center / cover
+    no-repeat;
+}
+
+.previaCorpo {
+  display: grid;
+  gap: 8px;
+  padding: 0 20px 20px;
+}
+
+.logoPrevia {
+  width: 56px;
+  height: 56px;
+  margin-top: -28px;
+  border-radius: 12px;
+  background-color: var(--superficie);
+  font-size: 15px;
+}
+
+.previaNome {
+  margin-top: 4px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.previaLinha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.estrela {
+  color: var(--marca);
+}
+
+.nota {
+  color: var(--texto);
+}
+
+.situacao {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--neutro-suave);
+  color: var(--texto-2);
+  font-size: 13px;
+}
+
+.situacao::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neutro-cor);
+}
+
+.situacao[data-aberto] {
+  background: var(--sucesso-suave);
+  color: var(--sucesso);
+}
+
+.situacao[data-aberto]::before {
+  background: var(--sucesso-cor);
+}
+
+.previaDescricao {
+  font-size: 13px;
+  color: var(--texto-suave);
+  line-height: 1.5;
+}
+
+.previaBotao {
+  margin-top: 4px;
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-m);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* Visibilidade */
+
+.interruptor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.interruptor > div {
+  display: grid;
+  gap: 1px;
+}
+
+.interruptor strong {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.interruptor span {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Alterar capa */
+
+.capaGrande {
+  width: 100%;
+  height: 180px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--raio);
+  background: linear-gradient(135deg, var(--neutro-cor) 0%, var(--borda-forte) 100%) center / cover
+    no-repeat;
+  color: var(--superficie);
+  cursor: pointer;
+}
+
+.arquivo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-m);
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+}
+
+.arquivo > span {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  font-size: 12px;
+}
+
+.arquivo strong {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lixeira {
+  border: 0;
+  background: none;
+  color: var(--texto-suave);
+  cursor: pointer;
+}
+
+.ajuda {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* Barra de alterações não salvas (backlog Admin 09b: um jeito só de salvar) */
+
+.barraSalvar {
+  position: sticky;
+  bottom: 24px;
+  z-index: 5;
+  align-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 10px 10px 10px 18px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+  font-size: 15px;
+}
+
+.pontoPendente {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--marca);
+}
+
+/* Divulgar */
+
+.divulgar {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.divulgar img {
+  flex: none;
+  border-radius: var(--raio-p);
+  border: 1px solid var(--borda);
+  background: #fff;
+}
+
+.divulgarAcoes {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.divulgarAcoes p {
+  font-size: 12px;
+  color: var(--texto-2);
+  word-break: break-all;
+}
+
+.divulgarAcoes .botaoLink {
+  font-size: 15px;
+  justify-content: center;
+}

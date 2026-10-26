@@ -10,7 +10,10 @@ export const barbeariaPublica = cache((slug: string) => paginaDaBarbearia(contex
 const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
 
 /** "Aberto agora · fecha às 21:00" no fuso da barbearia (backlog Admin: status bate com o relógio). */
-export function situacaoDoHorario(pagina: PaginaDaBarbearia, agora = new Date()): string {
+export function situacaoDoHorario(
+  pagina: Pick<PaginaDaBarbearia, 'fuso' | 'horarios'>,
+  agora = new Date(),
+): string {
   const local = partesLocais(agora, pagina.fuso)
   const minutos = (hhmm: string) => {
     const [h, m] = hhmm.split(':').map(Number)

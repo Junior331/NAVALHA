@@ -490,7 +490,13 @@
 }
 
 .filtrosGrupo legend {
+  float: left;
+  width: 100%;
   margin-bottom: 8px;
+}
+
+.filtrosGrupo legend + * {
+  clear: both;
 }
 
 .filtroOpcao {

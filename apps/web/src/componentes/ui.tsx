@@ -1,6 +1,6 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import Link from 'next/link'
 import {
   forwardRef,
@@ -172,10 +172,19 @@ export function Etiqueta({
 }
 
 /** Iniciais do nome num círculo (equipe e clientes; o painel não usa foto). */
-export function Avatar({ nome, tamanho = 32 }: { nome: string; tamanho?: number }) {
+export function Avatar({
+  nome,
+  tamanho = 32,
+  escuro,
+}: {
+  nome: string
+  tamanho?: number
+  /** Círculo preenchido em tinta (tabela do relatório). */
+  escuro?: boolean
+}) {
   return (
     <span
-      className={s.avatar}
+      className={[s.avatar, escuro && s.avatarEscuro].filter(Boolean).join(' ')}
       style={{ width: tamanho, height: tamanho, fontSize: Math.max(10, Math.round(tamanho / 3)) }}
       aria-hidden="true"
     >
@@ -270,5 +279,31 @@ export function Modal({
       <div className={s.modalCorpo}>{children}</div>
       {rodape ? <div className={s.modalRodape}>{rodape}</div> : null}
     </dialog>
+  )
+}
+
+/** Aviso que aparece no canto e some sozinho (perfil salvo, CSV exportado). */
+export function Toast({
+  titulo,
+  children,
+  aoFechar,
+}: {
+  titulo: string
+  children?: ReactNode
+  aoFechar: () => void
+}) {
+  return (
+    <div className={s.toast} role="status">
+      <span className={s.toastIcone} aria-hidden="true">
+        <Check size={16} strokeWidth={2.25} />
+      </span>
+      <div className={s.toastTexto}>
+        <strong>{titulo}</strong>
+        {children}
+      </div>
+      <button type="button" className={s.toastFechar} onClick={aoFechar} aria-label="Fechar aviso">
+        <X size={16} aria-hidden />
+      </button>
+    </div>
   )
 }

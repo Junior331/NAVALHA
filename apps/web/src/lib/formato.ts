@@ -84,12 +84,10 @@ export function variacaoPct(atual: number, anterior: number): number | null {
   return ((atual - anterior) / anterior) * 100
 }
 
+/** Primeira letra do primeiro e do último nome: "Barbearia do Zé" → "BZ". */
 export function iniciais(nome: string): string {
-  return nome
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((parte) => parte.charAt(0))
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
+  const partes = nome.split(/\s+/).filter(Boolean)
+  const primeira = partes[0]?.charAt(0) ?? ''
+  const ultima = partes.length > 1 ? (partes[partes.length - 1]?.charAt(0) ?? '') : ''
+  return `${primeira}${ultima}`.toUpperCase()
 }

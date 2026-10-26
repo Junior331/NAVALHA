@@ -1,22 +1,44 @@
 'use client'
 
+import { ExternalLink, ImageIcon, MapPin, Star, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, type ChangeEvent } from 'react'
-import { Botao, Campo, Cartao, Mensagem, Modal } from '@/componentes/ui'
+import { useRef, useState, type ChangeEvent, type ReactNode } from 'react'
+import { Botao, Campo, Cartao, Mensagem, Modal, Toast } from '@/componentes/ui'
+import { iniciais } from '@/lib/formato'
 import { api, ErroDaApi, supabaseNoNavegador } from '@/lib/supabase'
 import c from '../conta.module.css'
+import s from '../painel.module.css'
+import { AlterarCapa, enviarImagem, LIMITE_DA_IMAGEM, megabytes, TIPOS_DE_IMAGEM } from './capa'
+import { Divulgar } from './divulgar'
+import p from './perfil.module.css'
+
+// Figma Admin 09 · Perfil da barbearia. Endereço e bairro dividem um campo ("Rua, 128 · Centro"),
+// assim como cidade e UF ("Recife — PE"), como no Figma; ao salvar, cada parte vai para a coluna
+// dela. O link público não muda por aqui: QR Codes e links já divulgados continuariam apontando
+// para o endereço antigo.
 
 interface Dados {
   nome: string
   descricao: string
-  telefone: string
   whatsapp: string
   instagram: string
   endereco: string
   bairro: string
   cidade: string
   uf: string
+  capaUrl: string | null
+  logoUrl: string | null
+}
+
+/** O que o formulário edita: os campos combinados ficam como texto até salvar. */
+interface Formulario {
+  nome: string
+  descricao: string
+  whatsapp: string
+  instagram: string
+  endereco: string
+  cidadeUf: string
   capaUrl: string | null
   logoUrl: string | null
 }
@@ -30,27 +52,72 @@ interface Horario {
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 const LIMITE_DESCRICAO = 240
 
+function paraFormulario(d: Dados): Formulario {
+  return {
+    nome: d.nome,
+    descricao: d.descricao,
+    whatsapp: d.whatsapp,
+    instagram: d.instagram.replace(/^@/, ''),
+    endereco: [d.endereco, d.bairro].filter(Boolean).join(' · '),
+    cidadeUf: [d.cidade, d.uf.toUpperCase()].filter(Boolean).join(' — '),
+    capaUrl: d.capaUrl,
+    logoUrl: d.logoUrl,
+  }
+}
+
+/** "Rua das Palmeiras, 128 · Centro" → endereço e bairro. */
+function separarEndereco(texto: string): { endereco: string; bairro: string } {
+  const i = texto.lastIndexOf('·')
+  return i < 0
+    ? { endereco: texto.trim(), bairro: '' }
+    : { endereco: texto.slice(0, i).trim(), bairro: texto.slice(i + 1).trim() }
+}
+
+/** "Recife — PE", "Recife - PE", "Recife/PE" → cidade e UF. */
+function separarCidade(texto: string): { cidade: string; uf: string } {
+  const partes = texto.trim().match(/^(.*?)\s*[—–\-/,]\s*([A-Za-z]{2})$/)
+  return partes
+    ? { cidade: (partes[1] ?? '').trim(), uf: (partes[2] ?? '').toUpperCase() }
+    : { cidade: texto.trim(), uf: '' }
+}
+
 export function EditorDoPerfil({
   barbeariaId,
+  slug,
+  link,
+  qrCode,
   recebimentosAtivos,
   aceitarOnline,
   aparecerNasBuscas,
+  avaliacao,
+  situacao,
   inicial,
   horarios,
 }: {
   barbeariaId: string
+  slug: string
+  link: string
+  qrCode: string
   recebimentosAtivos: boolean
   aceitarOnline: boolean
   aparecerNasBuscas: boolean
+  avaliacao: { media: number | null; total: number }
+  /** "Aberto agora · fecha às 19:00", no fuso da barbearia. */
+  situacao: string
   inicial: Dados
   horarios: Horario[]
 }) {
   const router = useRouter()
-  const [dados, setDados] = useState(inicial)
+  const [base, setBase] = useState(() => paraFormulario(inicial))
+  const [form, setForm] = useState(base)
+  const [gradeSalva, setGradeSalva] = useState<Horario[]>(horarios)
   const [grade, setGrade] = useState<Horario[]>(horarios)
   const [salvando, setSalvando] = useState(false)
-  const [enviandoImagem, setEnviandoImagem] = useState<'capa' | 'logo' | null>(null)
-  const [estado, setEstado] = useState<{ tipo: 'erro' | 'sucesso'; texto: string } | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [salvo, setSalvo] = useState(false)
+  const [editandoCapa, setEditandoCapa] = useState(false)
+  const [enviandoLogo, setEnviandoLogo] = useState(false)
+  const entradaDoLogo = useRef<HTMLInputElement>(null)
 
   const [online, setOnline] = useState(aceitarOnline)
   const [buscas, setBuscas] = useState(aparecerNasBuscas)
@@ -60,13 +127,22 @@ export function EditorDoPerfil({
   const chaveDaGrade = (lista: Horario[]) =>
     JSON.stringify([...lista].sort((a, b) => a.dia - b.dia))
   const mudou =
-    JSON.stringify(dados) !== JSON.stringify(inicial) ||
-    chaveDaGrade(grade) !== chaveDaGrade(horarios)
+    JSON.stringify(form) !== JSON.stringify(base) ||
+    chaveDaGrade(grade) !== chaveDaGrade(gradeSalva)
   const gradeInvalida = grade.some((h) => !h.abre || !h.fecha || h.fecha <= h.abre)
-  const campo = (nome: keyof Dados) => ({
-    value: dados[nome] ?? '',
-    onChange: (e: ChangeEvent<HTMLInputElement>) => setDados({ ...dados, [nome]: e.target.value }),
+  const podeSalvar = mudou && !salvando && !gradeInvalida && form.nome.trim().length >= 2
+  const campo = (nome: 'nome' | 'whatsapp' | 'instagram' | 'endereco' | 'cidadeUf') => ({
+    value: form[nome],
+    onChange: (e: ChangeEvent<HTMLInputElement>) => setForm({ ...form, [nome]: e.target.value }),
   })
+  const host = link.replace(/^https?:\/\//, '').replace(/\/[^/]*$/, '')
+  const rua = separarEndereco(form.endereco)
+  const enderecoNaPrevia = [
+    [rua.endereco, rua.bairro].filter(Boolean).join(' · '),
+    separarCidade(form.cidadeUf).cidade,
+  ]
+    .filter(Boolean)
+    .join(', ')
 
   function alternarDia(dia: number, aberto: boolean) {
     setGrade(
@@ -80,53 +156,51 @@ export function EditorDoPerfil({
     setGrade(grade.map((h) => (h.dia === dia ? { ...h, [campoHora]: valor } : h)))
   }
 
-  async function enviarImagem(tipo: 'capa' | 'logo', arquivo: File | undefined) {
+  async function enviarLogo(arquivo: File | undefined) {
     if (!arquivo) return
-    if (arquivo.size > 2 * 1024 * 1024) {
-      setEstado({ tipo: 'erro', texto: 'A imagem precisa ter até 2 MB.' })
+    if (!TIPOS_DE_IMAGEM.includes(arquivo.type) || arquivo.size > LIMITE_DA_IMAGEM) {
+      setErro(`O logo precisa ser JPG, PNG ou WebP, até ${megabytes(LIMITE_DA_IMAGEM)}.`)
       return
     }
-    setEnviandoImagem(tipo)
-    setEstado(null)
-    const extensao = arquivo.type.split('/')[1] ?? 'jpg'
-    const caminho = `${barbeariaId}/${tipo}-${Date.now()}.${extensao}`
-    const armazenamento = supabaseNoNavegador().storage.from('barbearias')
-    const { error } = await armazenamento.upload(caminho, arquivo, {
-      contentType: arquivo.type,
-      upsert: true,
-    })
-    setEnviandoImagem(null)
-    if (error) {
-      setEstado({ tipo: 'erro', texto: 'Não foi possível enviar a imagem. Use JPG, PNG ou WebP.' })
-      return
+    setEnviandoLogo(true)
+    setErro(null)
+    try {
+      const url = await enviarImagem(barbeariaId, 'logo', arquivo)
+      setForm((atual) => ({ ...atual, logoUrl: url }))
+    } catch {
+      setErro('Não foi possível enviar o logo. Tente de novo.')
+    } finally {
+      setEnviandoLogo(false)
+      if (entradaDoLogo.current) entradaDoLogo.current.value = ''
     }
-    const url = armazenamento.getPublicUrl(caminho).data.publicUrl
-    setDados({ ...dados, [tipo === 'capa' ? 'capaUrl' : 'logoUrl']: url })
   }
 
   async function salvar() {
+    if (!podeSalvar) return
     setSalvando(true)
-    setEstado(null)
+    setErro(null)
     const supabase = supabaseNoNavegador()
     const vazioNulo = (texto: string) => texto.trim() || null
+    const { endereco, bairro } = separarEndereco(form.endereco)
+    const { cidade, uf } = separarCidade(form.cidadeUf)
+    const instagram = form.instagram.trim().replace(/^@/, '')
     const { error } = await supabase
       .from('barbearias')
       .update({
-        nome: dados.nome.trim(),
-        descricao: vazioNulo(dados.descricao),
-        telefone: vazioNulo(dados.telefone),
-        whatsapp: vazioNulo(dados.whatsapp),
-        instagram: vazioNulo(dados.instagram),
-        endereco: vazioNulo(dados.endereco),
-        bairro: vazioNulo(dados.bairro),
-        cidade: vazioNulo(dados.cidade),
-        uf: vazioNulo(dados.uf.toUpperCase()),
-        capa_url: dados.capaUrl,
-        logo_url: dados.logoUrl,
+        nome: form.nome.trim(),
+        descricao: vazioNulo(form.descricao),
+        whatsapp: vazioNulo(form.whatsapp),
+        instagram: vazioNulo(instagram),
+        endereco: vazioNulo(endereco),
+        bairro: vazioNulo(bairro),
+        cidade: vazioNulo(cidade),
+        uf: vazioNulo(uf),
+        capa_url: form.capaUrl,
+        logo_url: form.logoUrl,
       })
       .eq('id', barbeariaId)
     let erroHorarios = null
-    if (!error && chaveDaGrade(grade) !== chaveDaGrade(horarios)) {
+    if (!error && chaveDaGrade(grade) !== chaveDaGrade(gradeSalva)) {
       const abertos = grade.map((h) => h.dia)
       const fechados = DIAS.map((_, i) => i).filter((d) => !abertos.includes(d))
       const remocao = fechados.length
@@ -150,14 +224,33 @@ export function EditorDoPerfil({
     }
     setSalvando(false)
     if (error || erroHorarios) {
-      setEstado({
-        tipo: 'erro',
-        texto: 'Não foi possível salvar. Confira os campos e tente de novo.',
-      })
+      setErro('Não foi possível salvar. Confira os campos e tente de novo.')
       return
     }
-    setEstado({ tipo: 'sucesso', texto: 'Perfil salvo.' })
+    const salvoAgora = paraFormulario({
+      nome: form.nome.trim(),
+      descricao: form.descricao.trim(),
+      whatsapp: form.whatsapp.trim(),
+      instagram,
+      endereco,
+      bairro,
+      cidade,
+      uf,
+      capaUrl: form.capaUrl,
+      logoUrl: form.logoUrl,
+    })
+    setBase(salvoAgora)
+    setForm(salvoAgora)
+    setGradeSalva(grade)
+    setSalvo(true)
+    setTimeout(() => setSalvo(false), 5000)
     router.refresh()
+  }
+
+  function descartar() {
+    setForm(base)
+    setGrade(gradeSalva)
+    setErro(null)
   }
 
   async function definirOnline(aceitar: boolean) {
@@ -182,54 +275,278 @@ export function EditorDoPerfil({
     else setBuscas(aparecer)
   }
 
+  const logo = (tamanho: string) => (
+    <span
+      className={`${p.logo} ${tamanho}`}
+      style={form.logoUrl ? { backgroundImage: `url(${form.logoUrl})` } : undefined}
+      aria-hidden="true"
+    >
+      {form.logoUrl ? null : iniciais(form.nome || 'Barbearia')}
+    </span>
+  )
+
   return (
-    <>
-      <Cartao>
-        <div className={c.cartaoTitulo}>
-          <div>
-            <h2>Visibilidade</h2>
-            <p>Valem na hora, sem precisar salvar.</p>
-          </div>
+    <div className={p.pagina}>
+      <div className={s.cabecalhoPagina}>
+        <div>
+          <h1>Perfil da barbearia</h1>
+          <p>Como sua barbearia aparece para os clientes no app</p>
         </div>
-        <div className={c.interruptor}>
-          <div>
-            <strong id="rotulo-online">Aceitar agendamentos online</strong>
-            <span>
-              {recebimentosAtivos ? (
-                'Os clientes agendam e pagam pela página e pelo app.'
-              ) : (
+        <div className={s.acoes}>
+          <a className={p.botaoLink} href={`/${slug}`} target="_blank" rel="noreferrer">
+            <ExternalLink size={17} strokeWidth={1.75} aria-hidden />
+            Ver página pública
+          </a>
+          <Botao variante="secundario" onClick={salvar} disabled={!podeSalvar}>
+            {salvando ? 'Salvando…' : 'Salvar alterações'}
+          </Botao>
+        </div>
+      </div>
+
+      <div className={p.colunas}>
+        <div className={p.coluna}>
+          <Cartao className={p.cartao}>
+            <h2 className={p.titulo}>Identidade visual</h2>
+            <div
+              className={p.capa}
+              style={form.capaUrl ? { backgroundImage: `url(${form.capaUrl})` } : undefined}
+              data-com-imagem={form.capaUrl ? 'sim' : undefined}
+            >
+              {form.capaUrl ? null : (
                 <>
-                  Liga depois de <Link href="/painel/recebimentos">ativar os recebimentos</Link>.
+                  <ImageIcon size={20} strokeWidth={1.5} aria-hidden />
+                  <span>Capa da barbearia · 1600×600 px · JPG ou PNG</span>
                 </>
               )}
-            </span>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            className={c.chave}
-            aria-checked={online}
-            aria-labelledby="rotulo-online"
-            disabled={!recebimentosAtivos}
-            onClick={() => (online ? setConfirmarPausa(true) : definirOnline(true))}
-          />
+              <Botao variante="secundario" onClick={() => setEditandoCapa(true)}>
+                <Upload size={16} strokeWidth={1.75} aria-hidden />
+                {form.capaUrl ? 'Trocar capa' : 'Enviar capa'}
+              </Botao>
+            </div>
+            <div className={p.linhaLogo}>
+              {logo(p.logoGrande ?? '')}
+              <div className={p.textoLogo}>
+                <strong>Logo</strong>
+                <span>Quadrado, mínimo 400×400 px · PNG, JPG ou WebP</span>
+              </div>
+              <Botao
+                variante="secundario"
+                onClick={() => entradaDoLogo.current?.click()}
+                disabled={enviandoLogo}
+              >
+                <Upload size={16} strokeWidth={1.75} aria-hidden />
+                {enviandoLogo ? 'Enviando…' : 'Enviar logo'}
+              </Botao>
+              {form.logoUrl ? (
+                <Botao variante="fantasma" onClick={() => setForm({ ...form, logoUrl: null })}>
+                  Remover
+                </Botao>
+              ) : null}
+              <input
+                ref={entradaDoLogo}
+                type="file"
+                accept={TIPOS_DE_IMAGEM.join(',')}
+                className="so-leitor"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={(e) => enviarLogo(e.target.files?.[0])}
+              />
+            </div>
+          </Cartao>
+
+          <Cartao className={p.cartao}>
+            <h2 className={p.titulo}>Dados públicos</h2>
+            <div className={p.campos}>
+              <Campo rotulo="Nome da barbearia" {...campo('nome')} />
+              <Campo
+                rotulo="Link público"
+                value={slug}
+                readOnly
+                prefixo={`${host}/`}
+                ajuda="O link não muda depois do cadastro."
+              />
+              <label className={`${p.areaTexto} ${p.largo}`}>
+                <span className={p.rotuloComContador}>
+                  Descrição
+                  <span className={p.contador}>
+                    {form.descricao.length} / {LIMITE_DESCRICAO}
+                  </span>
+                </span>
+                <textarea
+                  maxLength={LIMITE_DESCRICAO}
+                  value={form.descricao}
+                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                />
+              </label>
+              <Campo rotulo="WhatsApp" mascara="celular" {...campo('whatsapp')} />
+              <Campo
+                rotulo="Instagram"
+                prefixo={<IconeInstagram />}
+                placeholder="barbearia"
+                {...campo('instagram')}
+              />
+              <div className={`${p.largo} ${p.linhaEndereco}`}>
+                <Campo
+                  rotulo="Endereço"
+                  placeholder="Rua das Palmeiras, 128 · Centro"
+                  {...campo('endereco')}
+                />
+                <Campo rotulo="Cidade / UF" placeholder="Recife — PE" {...campo('cidadeUf')} />
+              </div>
+            </div>
+          </Cartao>
+
+          <Cartao className={p.cartao}>
+            <h2 className={p.titulo}>Horário de funcionamento</h2>
+            <p className={p.subtitulo}>O expediente de cada barbeiro fica dentro deste horário.</p>
+            <div>
+              {DIAS.map((nome, dia) => {
+                const horario = grade.find((h) => h.dia === dia)
+                return (
+                  <div key={nome} className={c.dia}>
+                    <label className={c.marcar}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(horario)}
+                        onChange={(e) => alternarDia(dia, e.target.checked)}
+                      />
+                      {nome}
+                    </label>
+                    {horario ? (
+                      <span className={c.horas}>
+                        <input
+                          type="time"
+                          aria-label={`${nome}: abre às`}
+                          value={horario.abre}
+                          onChange={(e) => mudarHora(dia, 'abre', e.target.value)}
+                        />
+                        até
+                        <input
+                          type="time"
+                          aria-label={`${nome}: fecha às`}
+                          value={horario.fecha}
+                          onChange={(e) => mudarHora(dia, 'fecha', e.target.value)}
+                        />
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--texto-suave)' }}>Fechado</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            {gradeInvalida ? (
+              <Mensagem tipo="erro">O horário de fechar precisa ser depois do de abrir.</Mensagem>
+            ) : null}
+          </Cartao>
+          {erro ? <Mensagem tipo="erro">{erro}</Mensagem> : null}
         </div>
-        <div className={c.interruptor}>
-          <div>
-            <strong id="rotulo-buscas">Aparecer nas buscas do app</strong>
-            <span>Desligado, a barbearia só é encontrada pelo link da página.</span>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            className={c.chave}
-            aria-checked={buscas}
-            aria-labelledby="rotulo-buscas"
-            onClick={() => definirBuscas(!buscas)}
-          />
+
+        <div className={p.coluna}>
+          <section aria-labelledby="titulo-previa">
+            <h2 id="titulo-previa" className={`rotulo ${p.rotuloPrevia}`}>
+              Prévia no app do cliente
+            </h2>
+            <div className={p.previa}>
+              <div
+                className={p.previaCapa}
+                style={form.capaUrl ? { backgroundImage: `url(${form.capaUrl})` } : undefined}
+              />
+              <div className={p.previaCorpo}>
+                {logo(p.logoPrevia ?? '')}
+                <strong className={p.previaNome}>{form.nome || 'Nome da barbearia'}</strong>
+                <span className={p.previaLinha}>
+                  <Star size={15} strokeWidth={1.75} className={p.estrela} aria-hidden />
+                  {avaliacao.media === null ? (
+                    'Ainda sem avaliações'
+                  ) : (
+                    <>
+                      <span className={p.nota}>
+                        {avaliacao.media.toLocaleString('pt-BR', {
+                          minimumFractionDigits: 1,
+                          maximumFractionDigits: 1,
+                        })}
+                      </span>
+                      · {avaliacao.total} {avaliacao.total === 1 ? 'avaliação' : 'avaliações'}
+                    </>
+                  )}
+                </span>
+                {enderecoNaPrevia ? (
+                  <span className={p.previaLinha}>
+                    <MapPin size={15} strokeWidth={1.75} aria-hidden />
+                    {enderecoNaPrevia}
+                  </span>
+                ) : null}
+                <span
+                  className={p.situacao}
+                  data-aberto={situacao.startsWith('Aberto') ? 'sim' : undefined}
+                >
+                  {situacao}
+                </span>
+                {form.descricao ? <p className={p.previaDescricao}>{form.descricao}</p> : null}
+                <span className={p.previaBotao}>Agendar horário</span>
+              </div>
+            </div>
+          </section>
+
+          <Cartao className={p.cartao}>
+            <h2 className={p.titulo}>Visibilidade</h2>
+            <Interruptor
+              id="rotulo-buscas"
+              titulo="Aparecer nas buscas"
+              texto="Clientes encontram a barbearia no app"
+              ligado={buscas}
+              aoMudar={() => definirBuscas(!buscas)}
+            />
+            <Interruptor
+              id="rotulo-online"
+              titulo="Aceitar agendamentos online"
+              texto={
+                recebimentosAtivos ? (
+                  'Desative para pausar novas reservas'
+                ) : (
+                  <>
+                    Liga depois de <Link href="/painel/recebimentos">ativar os recebimentos</Link>
+                  </>
+                )
+              }
+              ligado={online}
+              desativado={!recebimentosAtivos}
+              aoMudar={() => (online ? setConfirmarPausa(true) : definirOnline(true))}
+            />
+            {erroInterruptor ? <Mensagem tipo="erro">{erroInterruptor}</Mensagem> : null}
+          </Cartao>
+
+          <Divulgar link={link} qrCode={qrCode} slug={slug} />
         </div>
-        {erroInterruptor ? <Mensagem tipo="erro">{erroInterruptor}</Mensagem> : null}
-      </Cartao>
+      </div>
+
+      {mudou ? (
+        <div className={p.barraSalvar} role="region" aria-label="Alterações não salvas">
+          <span className={p.pontoPendente} aria-hidden="true" />
+          <span>Você tem alterações não salvas</span>
+          <Botao variante="secundario" onClick={descartar} disabled={salvando}>
+            Descartar
+          </Botao>
+          <Botao variante="secundario" onClick={salvar} disabled={!podeSalvar}>
+            {salvando ? 'Salvando…' : 'Salvar alterações'}
+          </Botao>
+        </div>
+      ) : null}
+
+      {salvo ? (
+        <Toast titulo="Perfil atualizado" aoFechar={() => setSalvo(false)}>
+          As mudanças já aparecem para os clientes no app.
+        </Toast>
+      ) : null}
+
+      <AlterarCapa
+        barbeariaId={barbeariaId}
+        atual={form.capaUrl}
+        aberto={editandoCapa}
+        aoFechar={() => setEditandoCapa(false)}
+        aoUsar={(url) => setForm((atual) => ({ ...atual, capaUrl: url }))}
+      />
 
       <Modal
         aberto={confirmarPausa}
@@ -249,158 +566,60 @@ export function EditorDoPerfil({
       >
         <p>Um aviso de “Reservas pausadas” fica no topo do painel enquanto estiver desligado.</p>
       </Modal>
+    </div>
+  )
+}
 
-      <Cartao>
-        <div className={c.cartaoTitulo}>
-          <div>
-            <h2>Dados da barbearia</h2>
-            <p>Nome, contato e endereço que aparecem para o cliente.</p>
-          </div>
-        </div>
-        <div className={c.formulario}>
-          <Campo rotulo="Nome" {...campo('nome')} />
-          <label className={c.areaTexto}>
-            Descrição
-            <textarea
-              maxLength={LIMITE_DESCRICAO}
-              value={dados.descricao}
-              onChange={(e) => setDados({ ...dados, descricao: e.target.value })}
-            />
-            <span className={c.contador}>
-              {dados.descricao.length}/{LIMITE_DESCRICAO}
-            </span>
-          </label>
-          <div className={c.linha}>
-            <Campo rotulo="Telefone" mascara="celular" {...campo('telefone')} />
-            <Campo rotulo="WhatsApp" mascara="celular" {...campo('whatsapp')} />
-            <Campo rotulo="Instagram" placeholder="@barbearia" {...campo('instagram')} />
-          </div>
-          <div className={c.linha}>
-            <Campo rotulo="Endereço" {...campo('endereco')} />
-            <Campo rotulo="Bairro" {...campo('bairro')} />
-          </div>
-          <div className={c.linha}>
-            <Campo rotulo="Cidade" {...campo('cidade')} />
-            <Campo rotulo="UF" maxLength={2} {...campo('uf')} />
-          </div>
-        </div>
-      </Cartao>
+function Interruptor({
+  id,
+  titulo,
+  texto,
+  ligado,
+  desativado,
+  aoMudar,
+}: {
+  id: string
+  titulo: string
+  texto: ReactNode
+  ligado: boolean
+  desativado?: boolean
+  aoMudar: () => void
+}) {
+  return (
+    <div className={p.interruptor}>
+      <div>
+        <strong id={id}>{titulo}</strong>
+        <span>{texto}</span>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        className={c.chave}
+        aria-checked={ligado}
+        aria-labelledby={id}
+        disabled={desativado}
+        onClick={aoMudar}
+      />
+    </div>
+  )
+}
 
-      <Cartao>
-        <div className={c.cartaoTitulo}>
-          <div>
-            <h2>Imagens</h2>
-            <p>JPG, PNG ou WebP, até 2 MB.</p>
-          </div>
-        </div>
-        <div className={c.imagens}>
-          <label className={c.imagem}>
-            Capa
-            <span
-              className={c.previa}
-              style={dados.capaUrl ? { backgroundImage: `url(${dados.capaUrl})` } : undefined}
-            >
-              {dados.capaUrl ? '' : enviandoImagem === 'capa' ? 'Enviando…' : 'Sem capa'}
-            </span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => enviarImagem('capa', e.target.files?.[0])}
-            />
-          </label>
-          <label className={c.imagem}>
-            Logo
-            <span
-              className={`${c.previa} ${c.previaLogo}`}
-              style={dados.logoUrl ? { backgroundImage: `url(${dados.logoUrl})` } : undefined}
-            >
-              {dados.logoUrl ? '' : enviandoImagem === 'logo' ? 'Enviando…' : 'Sem logo'}
-            </span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => enviarImagem('logo', e.target.files?.[0])}
-            />
-          </label>
-        </div>
-      </Cartao>
-
-      <Cartao>
-        <div className={c.cartaoTitulo}>
-          <div>
-            <h2>Horário de funcionamento</h2>
-            <p>O expediente de cada barbeiro fica dentro deste horário.</p>
-          </div>
-        </div>
-        <div>
-          {DIAS.map((nome, dia) => {
-            const horario = grade.find((h) => h.dia === dia)
-            return (
-              <div key={nome} className={c.dia}>
-                <label className={c.marcar}>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(horario)}
-                    onChange={(e) => alternarDia(dia, e.target.checked)}
-                  />
-                  {nome}
-                </label>
-                {horario ? (
-                  <span className={c.horas}>
-                    <input
-                      type="time"
-                      aria-label={`${nome}: abre às`}
-                      value={horario.abre}
-                      onChange={(e) => mudarHora(dia, 'abre', e.target.value)}
-                    />
-                    até
-                    <input
-                      type="time"
-                      aria-label={`${nome}: fecha às`}
-                      value={horario.fecha}
-                      onChange={(e) => mudarHora(dia, 'fecha', e.target.value)}
-                    />
-                  </span>
-                ) : (
-                  <span style={{ color: 'var(--texto-suave)' }}>Fechado</span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        {gradeInvalida ? (
-          <Mensagem tipo="erro">O horário de fechar precisa ser depois do de abrir.</Mensagem>
-        ) : null}
-      </Cartao>
-
-      {estado ? <Mensagem tipo={estado.tipo}>{estado.texto}</Mensagem> : null}
-
-      {mudou ? (
-        <div className={c.barraSalvar} role="region" aria-label="Alterações não salvas">
-          <span>Você tem alterações não salvas.</span>
-          <div className={c.acoes}>
-            <Botao
-              variante="fantasma"
-              onClick={() => {
-                setDados(inicial)
-                setGrade(horarios)
-                setEstado(null)
-              }}
-              disabled={salvando}
-              style={{ color: 'inherit' }}
-            >
-              Descartar
-            </Botao>
-            <Botao
-              variante="secundario"
-              onClick={salvar}
-              disabled={salvando || gradeInvalida || dados.nome.trim().length < 2}
-            >
-              {salvando ? 'Salvando…' : 'Salvar alterações'}
-            </Botao>
-          </div>
-        </div>
-      ) : null}
-    </>
+/** Glifo do Instagram (a lucide não traz ícones de marca). */
+function IconeInstagram() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
   )
 }
