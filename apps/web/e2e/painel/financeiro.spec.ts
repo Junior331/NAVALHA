@@ -9,11 +9,11 @@ test('saca do disponível respeitando o mínimo de R$ 50', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Sacar', exact: true }).click()
   const dialogo = page.getByRole('dialog')
-  await dialogo.getByLabel('Valor (R$)').fill('10')
+  await dialogo.getByLabel('Valor (R$)').fill('1000')
   await expect(dialogo.getByText('O saque mínimo é de R$ 50,00')).toBeVisible()
   await expect(dialogo.getByRole('button', { name: 'Sacar por Pix' })).toBeDisabled()
 
-  await dialogo.getByLabel('Valor (R$)').fill('50')
+  await dialogo.getByLabel('Valor (R$)').fill('5000')
   await dialogo.getByRole('button', { name: 'Sacar por Pix' }).click()
   await expect(dialogo.getByText(/R\$ 50,00 a caminho da chave Pix/)).toBeVisible()
   await dialogo.getByText('Fechar', { exact: true }).click()

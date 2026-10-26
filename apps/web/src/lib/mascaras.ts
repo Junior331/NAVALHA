@@ -18,17 +18,18 @@ export function soDigitos(texto: string): string {
 }
 
 /**
- * Dinheiro como a pessoa digita: "2000000" vira "2.000.000" e "50,5" fica "50,5" (até 2 casas).
- * O ponto de milhar é automático; a vírgula separa os centavos.
+ * Dinheiro como na maquininha: cada dígito entra pelos centavos. "2" vira "0,02", "25" vira
+ * "0,25" e "2500" vira "25,00"; apagar volta uma casa. Até R$ 999.999.999,99.
  */
 export function mascararReais(texto: string): string {
-  const limpo = texto.replace(/[^\d,]/g, '')
-  if (!limpo) return ''
-  const [inteiroBruto = '', ...resto] = limpo.split(',')
-  const inteiro = inteiroBruto.replace(/^0+(?=\d)/, '').slice(0, 9)
-  const milhar = (inteiro || (resto.length ? '0' : '')).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  if (!resto.length) return milhar
-  return `${milhar},${resto.join('').slice(0, 2)}`
+  const digitos = soDigitos(texto).replace(/^0+/, '').slice(0, 11)
+  if (!soDigitos(texto)) return ''
+  return reaisComCentavos(Number(digitos || '0'))
+}
+
+function reaisComCentavos(centavos: number): string {
+  const reais = Math.floor(centavos / 100).toLocaleString('pt-BR')
+  return `${reais},${String(centavos % 100).padStart(2, '0')}`
 }
 
 /** "2.428,76" → 242876. Vazio ou inválido → 0. */
@@ -39,12 +40,9 @@ export function centavosDe(texto: string): number {
   return reais * 100 + centavos
 }
 
-/** 242876 → "2.428,76" (para preencher o campo a partir de um valor salvo). */
+/** 242876 → "2.428,76" e 5000 → "50,00" (para preencher o campo a partir de um valor salvo). */
 export function reaisParaCampo(centavos: number): string {
-  if (!centavos) return ''
-  const reais = Math.floor(centavos / 100).toLocaleString('pt-BR')
-  const resto = centavos % 100
-  return resto ? `${reais},${String(resto).padStart(2, '0')}` : reais
+  return centavos ? reaisComCentavos(centavos) : ''
 }
 
 /** (11) 98765-4321 ou (11) 3456-7890. */
@@ -139,7 +137,7 @@ export function aplicarMascara(mascara: Mascara, texto: string): string {
 
 /** Teclado do celular certo para cada máscara. */
 export const TECLADO: Record<Mascara, 'numeric' | 'decimal' | 'tel'> = {
-  reais: 'decimal',
+  reais: 'numeric',
   celular: 'tel',
   cpf: 'numeric',
   cpfCnpj: 'numeric',

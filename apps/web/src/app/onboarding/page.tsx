@@ -23,11 +23,11 @@ const ETAPAS: { id: Etapa; nome: string }[] = [
 
 // Modelo do Onboarding 02 (o dono ajusta antes de salvar).
 const MODELO = [
-  { nome: 'Corte masculino', categoria: 'Cabelo', duracao: 30, preco: '45' },
-  { nome: 'Barba', categoria: 'Barba', duracao: 20, preco: '30' },
-  { nome: 'Corte + barba', categoria: 'Combo', duracao: 50, preco: '70' },
-  { nome: 'Sobrancelha', categoria: 'Estética', duracao: 10, preco: '15' },
-  { nome: 'Pigmentação', categoria: 'Química', duracao: 40, preco: '60' },
+  { nome: 'Corte masculino', categoria: 'Cabelo', duracao: 30, preco: '45,00' },
+  { nome: 'Barba', categoria: 'Barba', duracao: 20, preco: '30,00' },
+  { nome: 'Corte + barba', categoria: 'Combo', duracao: 50, preco: '70,00' },
+  { nome: 'Sobrancelha', categoria: 'Estética', duracao: 10, preco: '15,00' },
+  { nome: 'Pigmentação', categoria: 'Química', duracao: 40, preco: '60,00' },
 ]
 
 const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']

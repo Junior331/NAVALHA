@@ -10,23 +10,28 @@ import {
 } from './mascaras'
 
 describe('máscara de dinheiro', () => {
-  it('põe o ponto de milhar e aceita até dois centavos depois da vírgula', () => {
-    expect(mascararReais('2000000')).toBe('2.000.000')
-    expect(mascararReais('50')).toBe('50')
-    expect(mascararReais('50,5')).toBe('50,5')
-    expect(mascararReais('1234,567')).toBe('1.234,56')
-    expect(mascararReais('R$ 0012,3a')).toBe('12,3')
-    expect(mascararReais(',5')).toBe('0,5')
+  it('entra pelos centavos, como na maquininha', () => {
+    expect(mascararReais('2')).toBe('0,02')
+    expect(mascararReais('0,025')).toBe('0,25')
+    expect(mascararReais('0,250')).toBe('2,50')
+    expect(mascararReais('2000000')).toBe('20.000,00')
+    expect(mascararReais('R$ 1.234,567')).toBe('12.345,67')
+    expect(mascararReais('0')).toBe('0,00')
     expect(mascararReais('abc')).toBe('')
+  })
+
+  it('apagar volta uma casa', () => {
+    expect(mascararReais('0,2')).toBe('0,02')
+    expect(mascararReais('2,5')).toBe('0,25')
   })
 
   it('converte de e para centavos', () => {
     expect(centavosDe('2.428,76')).toBe(242876)
-    expect(centavosDe('50,5')).toBe(5050)
-    expect(centavosDe('50')).toBe(5000)
+    expect(centavosDe('50,00')).toBe(5000)
+    expect(centavosDe('0,02')).toBe(2)
     expect(centavosDe('')).toBe(0)
     expect(reaisParaCampo(242876)).toBe('2.428,76')
-    expect(reaisParaCampo(5000)).toBe('50')
+    expect(reaisParaCampo(5000)).toBe('50,00')
     expect(reaisParaCampo(0)).toBe('')
   })
 })
@@ -53,8 +58,7 @@ describe('máscaras de telefone, documento e cartão', () => {
   })
 
   it('mantém o cursor depois do mesmo dígito ao formatar', () => {
-    // "20000|00" (cursor no 5º dígito) vira "2.000.0|00"
-    expect(posicaoDoCursor('2000000', 5, '2.000.000')).toBe(7)
     expect(posicaoDoCursor('1198', 4, '(11) 98')).toBe(7)
+    expect(posicaoDoCursor('11987654321', 2, '(11) 98765-4321')).toBe(3)
   })
 })

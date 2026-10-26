@@ -72,7 +72,19 @@ export const Campo = forwardRef<
     prefixo?: ReactNode
   }
 >(function Campo(
-  { rotulo, ajuda, erro, id, className, mascara, prefixo, onChange, inputMode, ...props },
+  {
+    rotulo,
+    ajuda,
+    erro,
+    id,
+    className,
+    mascara,
+    prefixo,
+    onChange,
+    inputMode,
+    placeholder,
+    ...props
+  },
   ref,
 ) {
   const gerado = useId()
@@ -86,17 +98,18 @@ export const Campo = forwardRef<
       aria-invalid={erro ? true : undefined}
       aria-describedby={ajuda || erro ? idAjuda : undefined}
       inputMode={inputMode ?? (mascara ? TECLADO[mascara] : undefined)}
+      placeholder={placeholder ?? (mascara === 'reais' ? '0,00' : undefined)}
       onChange={(e) => {
         if (mascara) {
           const alvo = e.target
           const digitado = alvo.value
           const formatado = aplicarMascara(mascara, digitado)
           if (formatado !== digitado) {
-            const cursor = posicaoDoCursor(
-              digitado,
-              alvo.selectionStart ?? digitado.length,
-              formatado,
-            )
+            // Dinheiro entra sempre pela direita (como na maquininha): o cursor fica no fim.
+            const cursor =
+              mascara === 'reais'
+                ? formatado.length
+                : posicaoDoCursor(digitado, alvo.selectionStart ?? digitado.length, formatado)
             alvo.value = formatado
             alvo.setSelectionRange(cursor, cursor)
           }
